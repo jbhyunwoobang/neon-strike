@@ -121,7 +121,7 @@ export class Room {
       m.info.kills = 0; m.info.deaths = 0; m.info.score = 0; m.info.alive = true;
     }
     if (this.mode === 'coop') this.beginWave(1);
-    return { x: 0, y: 1.7, z: 0 };
+    return { x: 0, y: 1.7, z: 42 }; // open plaza, clear of the central pillar
   }
 
   end() {

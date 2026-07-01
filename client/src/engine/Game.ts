@@ -109,7 +109,11 @@ export class Game {
     this.arena = new Arena(this.engine, opts.seed ?? 1);
     this.player = new Player(this.engine.camera, this.arena.colliders, this.input);
     this.player.onFootstep = (metal) => this.audio.footstep(metal);
-    const spawn = opts.spawn ?? { x: 0, y: 1.7, z: 0 };
+    // Spawn on the open plaza — NOT at the origin, which is inside the central
+    // pillar (would trap the player). Nudge out of any collider as a safety net.
+    let spawn = opts.spawn ?? { x: 0, y: 1.7, z: 42 };
+    if (Math.hypot(spawn.x, spawn.z) < 8) spawn = { x: 0, y: 1.7, z: 42 };
+    spawn = this.findClearSpawn(spawn.x, spawn.z);
     this.player.reset(spawn.x, 0, spawn.z);
 
     this.physics = new Physics({
@@ -200,6 +204,8 @@ export class Game {
       (window as any).__ns = {
         game: this, player: this.player, enemies: this.enemies, engine: this.engine, physics: this.physics,
         render: () => this.engine.composer.render(),
+        step: (dt: number) => this.update(dt, performance.now() / 1000),
+        input: this.input,
         aimGrenade: () => this.updateGrenadeArc(),
         inspect: () => this.weapon.inspect(),
         // Force a deterministic render (for screenshots when rAF is throttled):
@@ -363,6 +369,22 @@ export class Game {
     this.arcLine.geometry.computeBoundingSphere();
     // A small marker sphere at the landing point.
     this.arcLine.visible = true;
+  }
+
+  /** Find a spawn point not embedded in a collider (spiral outward if blocked). */
+  private findClearSpawn(x: number, z: number): { x: number; y: number; z: number } {
+    const blocked = (px: number, pz: number) => this.arena.colliders.some((c) => {
+      const b = c.box;
+      return px > b.min.x - 0.6 && px < b.max.x + 0.6 && pz > b.min.z - 0.6 && pz < b.max.z + 0.6 && b.max.y > 0.5;
+    });
+    if (!blocked(x, z)) return { x, y: 1.7, z };
+    for (let r = 4; r <= 60; r += 4) {
+      for (let a = 0; a < Math.PI * 2; a += Math.PI / 6) {
+        const nx = x + Math.cos(a) * r, nz = z + Math.sin(a) * r;
+        if (Math.hypot(nx, nz) < 95 && !blocked(nx, nz)) return { x: nx, y: 1.7, z: nz };
+      }
+    }
+    return { x: 0, y: 1.7, z: 46 };
   }
 
   private onFire(origin: THREE.Vector3, dir: THREE.Vector3, weaponIndex: number) {
