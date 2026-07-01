@@ -95,40 +95,151 @@ export class WeaponController {
   // View-model motion.
   private sway = new THREE.Vector2();
   private recoilKick = 0;
-  private basePos = new THREE.Vector3(0.22, -0.2, -0.45);
-  private adsPos = new THREE.Vector3(0, -0.13, -0.32);
+  private basePos = new THREE.Vector3(0.25, -0.24, -0.5);
+  private adsPos = new THREE.Vector3(0, -0.14, -0.34);
 
   constructor(ctx: Ctx) {
     this.ctx = ctx;
     WEAPONS.forEach((w) => { this.ammo.push(w.mag); this.reserve.push(w.reserve); this.mode.push(w.modes[0]); });
     this.buildViewModel();
+    this.group.scale.setScalar(0.88);
     ctx.camera.add(this.group);
+    // Dedicated short-range viewmodel light so the weapon + hands read clearly
+    // in dark areas (standard FPS technique); its tiny range barely touches the world.
+    const vmLight = new THREE.PointLight(0xc6ccd6, 1.4, 2.2, 2);
+    vmLight.position.set(0.2, 0.02, -0.32);
+    ctx.camera.add(vmLight);
   }
 
   get def() { return WEAPONS[this.index]; }
   get fireModeLabel() { return this.mode[this.index].toUpperCase(); }
 
+  /** World position of the muzzle tip (for casing/tracer origin), updated after build. */
+  ejectPortLocal = new THREE.Vector3(0.06, 0.02, -0.05);
+
   private buildViewModel() {
-    // Rebuild a simple procedural gun for the current weapon.
-    this.modelParts.forEach((p) => this.group.remove(p));
+    // Rebuild a detailed procedural weapon + gloved hands for the current gun.
+    this.modelParts.forEach((p) => { this.group.remove(p); });
     this.modelParts = [];
-    const metal = new THREE.MeshStandardMaterial({ color: 0x1c1a17, roughness: 0.42, metalness: 0.82 });
-    const accent = new THREE.MeshStandardMaterial({ color: 0x100d0a, roughness: 0.3, metalness: 0.9 });
-    const d = this.def;
-    const len = d.id === 'sniper' || d.id === 'dmr' ? 1.1 : d.id === 'pistol' ? 0.4 : 0.8;
-    const body = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.11, len), metal);
-    body.position.set(0, 0, -len / 2);
-    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, len * 0.7, 10), accent);
-    barrel.rotation.x = Math.PI / 2; barrel.position.set(0, 0.01, -len * 0.85);
-    const grip = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.16, 0.09), metal);
-    grip.position.set(0, -0.12, -0.1); grip.rotation.x = 0.3;
-    const sight = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.05, 0.015), new THREE.MeshBasicMaterial({ color: 0xd9552b }));
-    sight.position.set(0, 0.08, -0.2);
-    this.modelParts = d.melee
-      ? [(() => { const k = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.05, 0.4), accent); k.position.set(0, -0.05, -0.4); return k; })()]
-      : [body, barrel, grip, sight];
-    this.modelParts.forEach((p) => this.group.add(p));
+
+    // Shared materials.
+    const gun = new THREE.MeshStandardMaterial({ color: 0x2a2c33, roughness: 0.5, metalness: 0.72 });
+    const poly = new THREE.MeshStandardMaterial({ color: 0x15161b, roughness: 0.72, metalness: 0.2 });
+    const steel = new THREE.MeshStandardMaterial({ color: 0x3c3f47, roughness: 0.32, metalness: 0.92 });
+    const glove = new THREE.MeshStandardMaterial({ color: 0x1b1b20, roughness: 0.82, metalness: 0.12 });
+    const emberDot = new THREE.MeshBasicMaterial({ color: 0xd9552b });
+    const lens = new THREE.MeshStandardMaterial({ color: 0x3a5a7a, roughness: 0.1, metalness: 0.3, emissive: 0x14324a, emissiveIntensity: 0.6 });
+
+    const add = (mesh: THREE.Mesh, x: number, y: number, z: number, rx = 0, ry = 0, rz = 0) => {
+      mesh.position.set(x, y, z); mesh.rotation.set(rx, ry, rz);
+      this.modelParts.push(mesh); this.group.add(mesh); return mesh;
+    };
+    const box = (w: number, h: number, dp: number, m: THREE.Material) => new THREE.Mesh(new THREE.BoxGeometry(w, h, dp), m);
+    const cyl = (rt: number, rb: number, len: number, m: THREE.Material, seg = 10) => new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, len, seg), m);
+
+    const id = this.def.id;
+
+    if (this.def.melee) {
+      // Combat knife: handle + guard + blade.
+      add(box(0.03, 0.035, 0.14, poly), 0.0, -0.02, 0.02);
+      add(box(0.06, 0.012, 0.02, steel), 0.0, -0.02, -0.06);
+      const blade = box(0.008, 0.05, 0.28, steel); add(blade, 0.0, -0.01, -0.22, 0, 0, 0);
+      this.buildHands(add, box, cyl, glove, 'knife');
+      this.group.position.copy(this.basePos);
+      return;
+    }
+
+    // ---- common rifle/SMG core ----
+    const long = id === 'sniper' || id === 'dmr' || id === 'lmg';
+    const compact = id === 'smg' || id === 'pistol';
+    const barrelLen = id === 'pistol' ? 0.16 : long ? 0.5 : id === 'smg' ? 0.24 : 0.34;
+    const muzzleZ = -0.28 - barrelLen;
+
+    // lower receiver / frame
+    add(box(0.05, 0.09, 0.26, poly), 0, -0.01, -0.05);
+    // upper receiver
+    add(box(0.052, 0.06, 0.3, gun), 0, 0.045, -0.1);
+    // charging handle
+    add(box(0.022, 0.022, 0.05, gun), 0, 0.085, 0.02);
+    // ejection port cover (right side)
+    add(box(0.006, 0.03, 0.06, steel), 0.028, 0.05, -0.04);
+
+    if (id !== 'pistol') {
+      // stock + buffer tube
+      add(cyl(0.017, 0.017, 0.14, gun, 8), 0, 0.04, 0.1, Math.PI / 2, 0, 0);
+      add(box(0.05, 0.085, 0.16, poly), 0, 0.02, 0.2);
+      add(box(0.055, 0.03, 0.04, poly), 0, -0.01, 0.28); // butt pad
+      // pistol grip
+      add(box(0.045, 0.14, 0.06, poly), 0, -0.11, 0.05, 0.34, 0, 0);
+      // magazine (curved)
+      add(box(0.05, 0.24, 0.09, poly), 0, -0.17, -0.03, -0.12, 0, 0);
+      // handguard with rail
+      add(box(0.062, 0.07, barrelLen + 0.06, poly), 0, 0.03, -0.3 - barrelLen / 2);
+      // top picatinny rail ribs
+      const railZ0 = -0.02;
+      for (let i = 0; i < 9; i++) add(box(0.03, 0.008, 0.014, gun), 0, 0.088, railZ0 - i * 0.05);
+    } else {
+      // pistol: slide + grip + trigger guard
+      add(box(0.05, 0.06, 0.22, gun), 0, 0.045, -0.14);
+      add(box(0.045, 0.13, 0.055, poly), 0, -0.08, 0.04, 0.28, 0, 0);
+      add(box(0.05, 0.2, 0.09, poly), 0, -0.16, 0.02, -0.05, 0, 0); // magazine in grip line
+    }
+
+    // barrel + gas block + flash hider
+    add(cyl(0.014, 0.014, barrelLen, steel, 12), 0, 0.045, -0.28 - barrelLen / 2, Math.PI / 2, 0, 0);
+    if (id !== 'pistol') add(box(0.03, 0.05, 0.04, gun), 0, 0.07, -0.42);
+    add(cyl(0.022, 0.02, 0.05, steel, 10), 0, 0.045, muzzleZ, Math.PI / 2, 0, 0); // muzzle device
+
+    // sights / optic
+    if (id === 'sniper' || id === 'dmr') {
+      // scope: tube + bells + lens
+      add(cyl(0.03, 0.03, 0.24, gun, 14), 0, 0.12, -0.18, Math.PI / 2, 0, 0);
+      add(cyl(0.038, 0.038, 0.05, gun, 14), 0, 0.12, -0.06, Math.PI / 2, 0, 0);
+      add(cyl(0.038, 0.038, 0.05, gun, 14), 0, 0.12, -0.3, Math.PI / 2, 0, 0);
+      const l = cyl(0.03, 0.03, 0.006, lens, 14); add(l, 0, 0.12, -0.055, Math.PI / 2, 0, 0);
+      add(box(0.03, 0.05, 0.03, gun), 0, 0.085, -0.18); // mount
+    } else if (id === 'pistol') {
+      add(box(0.008, 0.015, 0.01, gun), 0, 0.085, -0.24); // front post
+      add(box(0.03, 0.015, 0.01, gun), 0, 0.085, 0.0);    // rear notch
+    } else {
+      // red-dot optic
+      add(box(0.05, 0.05, 0.07, gun), 0, 0.105, -0.12);
+      const l = box(0.038, 0.038, 0.004, lens); add(l, 0, 0.115, -0.155);
+      add(box(0.004, 0.004, 0.004, emberDot), 0, 0.115, -0.152);
+      // flip front sight
+      add(box(0.01, 0.05, 0.01, gun), 0, 0.11, -0.5);
+    }
+
+    // charging handle accent + lmg drum/box mag
+    if (id === 'lmg') add(box(0.11, 0.14, 0.12, poly), 0, -0.16, -0.02);
+
+    this.buildHands(add, box, cyl, glove, id === 'pistol' ? 'pistol' : 'rifle');
+    this.ejectPortLocal.set(0.05, 0.05, -0.04);
     this.group.position.copy(this.basePos);
+  }
+
+  /** Gloved forearms + fists gripping the weapon (added to the view group). */
+  private buildHands(
+    add: (m: THREE.Mesh, x: number, y: number, z: number, rx?: number, ry?: number, rz?: number) => THREE.Mesh,
+    box: (w: number, h: number, dp: number, m: THREE.Material) => THREE.Mesh,
+    cyl: (rt: number, rb: number, len: number, m: THREE.Material, seg?: number) => THREE.Mesh,
+    glove: THREE.Material, kind: 'rifle' | 'pistol' | 'knife',
+  ) {
+    const gripZ = kind === 'pistol' ? 0.04 : 0.05;
+    // Right hand on the grip + forearm angling to the lower-right of the frame.
+    add(box(0.055, 0.06, 0.075, glove), 0.005, -0.14, gripZ);            // fist
+    for (let i = 0; i < 4; i++) add(box(0.015, 0.02, 0.055, glove), -0.02 + i * 0.013, -0.115, gripZ - 0.03, 0.5, 0, 0); // fingers
+    add(box(0.02, 0.045, 0.05, glove), 0.028, -0.13, gripZ + 0.01);      // thumb side
+    add(cyl(0.032, 0.04, 0.34, glove, 8), 0.075, -0.26, gripZ + 0.16, 1.15, 0, 0.35); // forearm
+
+    if (kind !== 'pistol') {
+      // Left hand on the handguard + forearm to the lower-left.
+      const fgZ = -0.42;
+      add(box(0.06, 0.06, 0.09, glove), 0, -0.11, fgZ);                  // fist
+      for (let i = 0; i < 4; i++) add(box(0.016, 0.05, 0.02, glove), -0.03 + i * 0.02, -0.075, fgZ, -0.3, 0, 0); // fingers over top
+      add(box(0.022, 0.05, 0.05, glove), -0.04, -0.1, fgZ + 0.02);       // thumb
+      add(cyl(0.032, 0.042, 0.36, glove, 8), -0.11, -0.24, fgZ - 0.14, 1.1, 0, -0.5); // forearm
+    }
   }
 
   switchTo(i: number) {

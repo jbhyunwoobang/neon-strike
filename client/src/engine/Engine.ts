@@ -74,6 +74,9 @@ export class Engine {
     this.scene.fog = new THREE.FogExp2(0x161217, this.preset.fogDensity);
 
     this.camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 0.05, 800);
+    // The camera must live in the scene graph so camera-parented objects (the
+    // weapon view-model + its light) are included in the render traversal.
+    this.scene.add(this.camera);
 
     // Postprocessing chain.
     this.composer = new EffectComposer(this.renderer);

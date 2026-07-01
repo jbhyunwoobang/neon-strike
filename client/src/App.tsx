@@ -18,6 +18,7 @@ import { Net } from './engine/Net';
 import type { GameMode } from './shared/protocol';
 import { Intro } from './ui/Intro';
 import { MainMenu } from './ui/MainMenu';
+import { Loadout } from './ui/Loadout';
 import { SettingsScreen } from './ui/Settings';
 import { MultiplayerMenu } from './ui/MultiplayerMenu';
 import { Lobby } from './ui/Lobby';
@@ -78,7 +79,8 @@ export function App() {
   /* ------------------------------ solo ------------------------------ */
   function startSolo() {
     store.get().setMode('coop');
-    beginMatch({ mode: 'coop', seed: (Math.random() * 1e9) | 0 });
+    const { weapon, grenade } = store.get().loadout;
+    beginMatch({ mode: 'coop', seed: (Math.random() * 1e9) | 0, startWeapon: weapon, grenade });
   }
 
   /* --------------------------- multiplayer -------------------------- */
@@ -160,11 +162,15 @@ export function App() {
 
       {screen === 'menu' && (
         <MainMenu
-          onSolo={startSolo}
+          onSolo={() => store.get().setScreen('loadout')}
           onMultiplayer={() => store.get().setScreen('mp-menu')}
           onSettings={() => store.get().setScreen('settings')}
           onCredits={() => store.get().setScreen('credits')}
         />
+      )}
+
+      {screen === 'loadout' && (
+        <Loadout onDeploy={startSolo} onBack={() => store.get().setScreen('menu')} />
       )}
 
       {screen === 'settings' && <SettingsScreen onBack={() => store.get().setScreen('menu')} />}

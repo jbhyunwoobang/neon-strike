@@ -17,8 +17,16 @@ import type { GameMode, PlayerInfo, RoomSnapshot, ChatLine } from './shared/prot
 export type Screen =
   | 'intro'
   | 'menu' | 'settings' | 'credits'
+  | 'loadout'
   | 'mp-menu' | 'lobby'
   | 'playing' | 'gameover';
+
+export type GrenadeType = 'frag' | 'smoke' | 'flash' | 'emp';
+
+export interface Loadout {
+  weapon: number;        // index into the weapon roster
+  grenade: GrenadeType;
+}
 
 export type Quality = 'low' | 'medium' | 'high' | 'ultra';
 
@@ -55,6 +63,7 @@ export interface Hud {
   hitmarker: number;       // timestamp of last hit (drives the marker animation)
   headshot: boolean;
   damageFlash: number;     // timestamp of last damage taken
+  flash: number;           // timestamp of last flashbang (white)
   interactHint: string;    // e.g. "HOLD F — UPGRADE"
   toast: string;
 }
@@ -102,7 +111,7 @@ function loadSettings(): Settings {
 const emptyHud: Hud = {
   health: 100, armor: 0, ammo: 30, reserve: 120, weapon: 'RIFLE', fireMode: 'AUTO',
   wave: 1, score: 0, kills: 0, enemiesLeft: 0, alive: true, reloading: false,
-  fps: 0, hitmarker: 0, headshot: false, damageFlash: 0, interactHint: '', toast: '',
+  fps: 0, hitmarker: 0, headshot: false, damageFlash: 0, flash: 0, interactHint: '', toast: '',
 };
 
 interface State {
@@ -110,6 +119,8 @@ interface State {
   mode: GameMode;
   username: string;
   bestScore: number;
+  loadout: Loadout;
+  setLoadout: (patch: Partial<Loadout>) => void;
 
   settings: Settings;
   hud: Hud;
@@ -154,6 +165,8 @@ export const useStore = create<State>((set, get) => ({
   settings: loadSettings(),
   hud: { ...emptyHud },
   mp: { ...emptyMp },
+  loadout: { weapon: 2, grenade: 'frag' }, // default: AR + frag
+  setLoadout: (patch) => set((s) => ({ loadout: { ...s.loadout, ...patch } })),
 
   setScreen: (screen) => set({ screen }),
   setMode: (mode) => set({ mode }),

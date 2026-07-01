@@ -24,7 +24,9 @@ import { WeaponController, WEAPONS, type ShotResult } from './Weapons';
 import { EnemyManager } from './Enemies';
 import { WaveManager } from './WaveManager';
 import { Net } from './Net';
+import { Physics } from './Physics';
 import { store } from '../store';
+import type { GrenadeType } from '../store';
 import type { GameMode, PlayerTransform, PlayerInfo } from '../shared/protocol';
 
 export interface StartOptions {
@@ -33,6 +35,8 @@ export interface StartOptions {
   spawn?: { x: number; y: number; z: number };
   net?: Net;                    // provided for multiplayer
   spawnPoints?: THREE.Vector3[];
+  startWeapon?: number;         // roster index chosen in the loadout
+  grenade?: string;             // grenade type chosen in the loadout
 }
 
 interface Pickup { mesh: THREE.Mesh; kind: 'health' | 'ammo'; }
@@ -42,6 +46,7 @@ export class Game {
   private input: Input;
   private audio: Audio;
   private effects: Effects;
+  private physics!: Physics;
   private arena!: Arena;
   private player!: Player;
   private weapon!: WeaponController;
@@ -65,6 +70,11 @@ export class Game {
   // Pickups.
   private pickups: Pickup[] = [];
   private pickupTimer = 10;
+
+  // Loadout.
+  private grenadeType = 'frag';
+  private grenadeCount = 3;
+  private grenadeLatch = false;
 
   // Multiplayer.
   private remotePlayers = new Map<string, { group: THREE.Group; body: THREE.Mesh; head: THREE.Mesh; tx: number; ty: number; tz: number; ry: number }>();
@@ -97,6 +107,16 @@ export class Game {
     const spawn = opts.spawn ?? { x: 0, y: 1.7, z: 0 };
     this.player.reset(spawn.x, 0, spawn.z);
 
+    this.physics = new Physics({
+      scene: this.engine.scene, effects: this.effects, audio: this.audio,
+      onExplosion: (pos, radius, dmg) => {
+        this.enemies.damageArea(pos, radius, dmg);
+        if (pos.distanceTo(this.player.pos) < radius) this.damagePlayer(dmg * (1 - pos.distanceTo(this.player.pos) / radius), null);
+      },
+      onFlash: () => store.get().setHud({ flash: performance.now() }),
+      onEmp: (pos, radius) => this.enemies.empStun(pos, radius),
+    });
+
     this.enemies = new EnemyManager({
       scene: this.engine.scene,
       colliders: this.arena.colliders,
@@ -105,6 +125,7 @@ export class Game {
       getPlayerPos: () => this.player.pos,
       onPlayerDamage: (d) => this.damagePlayer(d, null),
       onKill: (sc, type, head) => this.onEnemyKilled(sc, type, head),
+      onRagdoll: (group, hitDir) => this.physics.ragdoll(group, hitDir),
     });
 
     this.weapon = new WeaponController({
@@ -130,6 +151,11 @@ export class Game {
       onWaveHorn: () => this.audio.waveHorn(),
     });
 
+    // Apply chosen loadout.
+    if (opts.startWeapon != null) this.weapon.switchTo(opts.startWeapon);
+    if (opts.grenade) this.grenadeType = opts.grenade;
+    this.grenadeCount = 3; this.grenadeLatch = false;
+
     // Reset vitals.
     this.health = this.maxHealth = 100;
     this.armor = this.mode === 'ffa' || this.mode === 'tdm' ? 25 : 0;
@@ -148,7 +174,8 @@ export class Game {
     // Debug handle for automated tests — stripped from production builds.
     if ((import.meta as any).env?.DEV) {
       (window as any).__ns = {
-        game: this, player: this.player, enemies: this.enemies, engine: this.engine,
+        game: this, player: this.player, enemies: this.enemies, engine: this.engine, physics: this.physics,
+        render: () => this.engine.composer.render(),
         // Force a deterministic render (for screenshots when rAF is throttled):
         // aim the camera, refresh matrices, draw one frame.
         renderAt: (x: number, y: number, z: number, yaw: number, pitch: number) => {
@@ -188,6 +215,7 @@ export class Game {
     this.input.dispose();
     this.audio.dispose();
     this.enemies?.clear();
+    this.physics?.clear();
     this.remotePlayers.forEach((r) => this.engine.scene.remove(r.group));
     this.remotePlayers.clear();
     this.engine.dispose();
@@ -279,10 +307,21 @@ export class Game {
       store.get().setHud({ hitmarker: performance.now(), headshot: r.headshot });
       this.audio.hitmarker(r.headshot);
       this.net.hitPlayer(r.playerId, r.dmg, r.headshot, this.weapon.def.id);
+    } else if (r.material === 'glass') {
+      // Shot glass shatters into falling shards.
+      this.physics.shatter(r.point, r.dir.clone().negate(), 7);
     }
   }
 
   private onFire(origin: THREE.Vector3, dir: THREE.Vector3, weaponIndex: number) {
+    // Eject a brass casing to the right of the weapon (skip melee).
+    if (!WEAPONS[weaponIndex]?.melee) {
+      const worldUp = new THREE.Vector3(0, 1, 0);
+      const right = new THREE.Vector3().crossVectors(dir, worldUp).normalize();
+      const up = new THREE.Vector3().crossVectors(right, dir).normalize();
+      const port = origin.clone().addScaledVector(dir, 0.35).addScaledVector(right, 0.16).addScaledVector(up, -0.06);
+      this.physics.ejectCasing(port, right, up);
+    }
     if (this.net) {
       this.net.sendFire({ ox: origin.x, oy: origin.y, oz: origin.z, dx: dir.x, dy: dir.y, dz: dir.z, weapon: weaponIndex });
     }
@@ -376,6 +415,18 @@ export class Game {
     if (this.input.wantReload) { this.weapon.reload(); this.input.wantReload = false; }
     if (this.input.isDown('KeyV')) this.weapon.toggleFireMode();
 
+    // Grenade throw (G) — one per press.
+    if (this.input.isDown('KeyG')) {
+      if (!this.grenadeLatch && this.grenadeCount > 0) {
+        this.grenadeLatch = true; this.grenadeCount--;
+        const o = new THREE.Vector3(); this.engine.camera.getWorldPosition(o);
+        const d = new THREE.Vector3(); this.engine.camera.getWorldDirection(d);
+        this.physics.throwGrenade(o.addScaledVector(d, 0.5), d, this.grenadeType as GrenadeType);
+        this.audio.reload();
+        this.toast(`${this.grenadeType.toUpperCase()} OUT · ${this.grenadeCount} LEFT`);
+      }
+    } else { this.grenadeLatch = false; }
+
     // Player movement.
     const beforeYaw = this.player.yaw, beforePitch = this.player.pitch;
     this.player.update(dt);
@@ -394,6 +445,7 @@ export class Game {
     this.updatePickups(dt, elapsed);
     this.arena.update(dt, elapsed, this.engine.camera.position);
     this.effects.update(dt);
+    this.physics.update(dt);
 
     // Interpolate remote players.
     this.remotePlayers.forEach((r) => {

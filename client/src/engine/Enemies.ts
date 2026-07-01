@@ -46,6 +46,7 @@ interface Ctx {
   getPlayerPos: () => THREE.Vector3;
   onPlayerDamage: (dmg: number) => void;
   onKill: (score: number, type: string, headshot: boolean) => void;
+  onRagdoll?: (group: THREE.Object3D, hitDir: THREE.Vector3) => void;
 }
 
 type AIState = 'approach' | 'strafe' | 'attack' | 'reposition';
@@ -113,6 +114,7 @@ class Enemy {
   fireCd = 0;
   strafeDir = 1;
   hurtT = 0;
+  stun = 0;                 // EMP disable timer
   private _meshes: THREE.Object3D[] = [];
 
   constructor(id: number, type: string, x: number, z: number) {
@@ -177,13 +179,37 @@ export class EnemyManager {
     if (!e) return null;
     e.hp -= dmg;
     e.hurtT = 0.12;
-    if (e.hp <= 0) {
-      this.ctx.scene.remove(e.group);
-      this.local.delete(enemyId);
-      this.ctx.onKill(e.def.score, e.type, headshot);
-      return { killed: true, type: e.type };
-    }
+    if (e.hp <= 0) { this.killLocal(e, headshot); return { killed: true, type: e.type }; }
     return { killed: false, type: e.type };
+  }
+
+  /** Radial damage (grenades / explosions). Kills within range flop as ragdolls. */
+  damageArea(pos: THREE.Vector3, radius: number, dmg: number) {
+    for (const e of [...this.local.values()]) {
+      const d = e.group.position.distanceTo(pos);
+      if (d > radius) continue;
+      e.hp -= dmg * (1 - d / radius);
+      e.hurtT = 0.12;
+      if (e.hp <= 0) this.killLocal(e, false);
+    }
+  }
+
+  /** EMP stun: disable machines in radius for a few seconds. */
+  empStun(pos: THREE.Vector3, radius: number, duration = 4) {
+    for (const e of this.local.values()) {
+      if (e.group.position.distanceTo(pos) < radius) e.stun = duration;
+    }
+  }
+
+  private killLocal(e: Enemy, headshot: boolean) {
+    this.local.delete(e.id);
+    if (this.ctx.onRagdoll) {
+      const hit = e.group.position.clone().sub(this.ctx.getPlayerPos());
+      this.ctx.onRagdoll(e.group, hit);        // physics takes ownership + removes it
+    } else {
+      this.ctx.scene.remove(e.group);
+    }
+    this.ctx.onKill(e.def.score, e.type, headshot);
   }
 
   updateLocal(dt: number, elapsed: number) {
@@ -197,6 +223,14 @@ export class EnemyManager {
       // Face the player + a subtle idle sway.
       e.group.rotation.y = Math.atan2(toX, toZ);
       e.group.rotation.z = Math.sin(elapsed * 2 + e.id) * 0.02;
+
+      // EMP-stunned: twitch in place, no movement or attacks.
+      if (e.stun > 0) {
+        e.stun -= dt;
+        e.group.rotation.z += Math.sin(elapsed * 40) * 0.05;
+        e.mat.emissiveIntensity = 0.2 + Math.random() * 0.6;
+        continue;
+      }
 
       // Simple state machine.
       e.stateT -= dt;

@@ -28,6 +28,15 @@ export function Hud() {
     }
   }, [hud.damageFlash]);
 
+  const [flashOn, setFlashOn] = useState(false);
+  const lastFlash = useRef(0);
+  useEffect(() => {
+    if (hud.flash && hud.flash !== lastFlash.current) {
+      lastFlash.current = hud.flash; setFlashOn(true);
+      const t = setTimeout(() => setFlashOn(false), 1400); return () => clearTimeout(t);
+    }
+  }, [hud.flash]);
+
   const [showScores, setShowScores] = useState(false);
   useEffect(() => {
     const d = (e: KeyboardEvent) => { if (e.code === 'Tab') { e.preventDefault(); setShowScores(true); } };
@@ -39,6 +48,7 @@ export function Hud() {
   return (
     <div className="hud">
       {dmgOn && <div className="damage-flash" />}
+      {flashOn && <div className="flash-white" />}
       <div className="crosshair"><span className="t u" /><span className="t d" /><span className="t l" /><span className="t r" /><i /></div>
       {hitOn && <div className="hitmarker" style={{ color: hud.headshot ? 'var(--warn)' : '#fff' }}><span className="h" /><span className="v" /></div>}
 
