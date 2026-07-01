@@ -92,9 +92,12 @@ export class WeaponController {
   aiming = false;
   private adsBlend = 0;      // 0 hip .. 1 ads
 
-  // View-model motion.
+  // View-model motion + procedural animations.
   private sway = new THREE.Vector2();
   private recoilKick = 0;
+  private raiseT = 0;        // weapon-switch raise (counts down)
+  private inspectT = 0;      // inspect animation (counts down)
+  private inspectDur = 2.4;
   private basePos = new THREE.Vector3(0.25, -0.24, -0.5);
   private adsPos = new THREE.Vector3(0, -0.14, -0.34);
 
@@ -247,7 +250,12 @@ export class WeaponController {
     this.index = i;
     this.buildViewModel();
     this.cooldown = 0.25;
+    this.raiseT = 0.4;        // play a raise-in animation
+    this.inspectT = 0;
   }
+
+  /** Manual inspect animation (rotate the weapon to examine it). */
+  inspect() { if (!this.reloading && this.inspectT <= 0) this.inspectT = this.inspectDur; }
 
   cycle(dir: number) {
     let i = (this.index + dir + WEAPONS.length) % WEAPONS.length;
@@ -315,6 +323,10 @@ export class WeaponController {
     // Burst pump.
     if (this.burstLeft > 0 && this.cooldown <= 0) { this.fire(); this.burstLeft--; }
 
+    // Animation timers.
+    if (this.raiseT > 0) this.raiseT -= dt;
+    if (this.inspectT > 0) this.inspectT -= dt;
+
     // View-model sway + recoil recovery + ADS position.
     this.sway.x += (-lookDelta.dx * 0.5 - this.sway.x) * Math.min(1, dt * 8);
     this.sway.y += (-lookDelta.dy * 0.5 - this.sway.y) * Math.min(1, dt * 8);
@@ -325,8 +337,32 @@ export class WeaponController {
     target.x += this.sway.x * (1 - this.adsBlend);
     target.y += (this.sway.y + bob) * (1 - this.adsBlend);
     target.z += this.recoilKick * 0.12;
+    let rotX = -this.recoilKick * 0.4 + this.sway.y;
+    let rotY = this.sway.x;
+    let rotZ = 0;
+
+    // Reload: the weapon dips and cants while the magazine is swapped.
+    if (this.reloading) {
+      const p = 1 - this.reloadT / Math.max(0.01, this.def.reloadTime);
+      const dip = Math.sin(Math.min(1, p) * Math.PI);
+      target.y -= dip * 0.14; target.x -= dip * 0.05;
+      rotZ += dip * 0.55; rotX += dip * 0.32;
+    }
+    // Raise-in on weapon switch.
+    if (this.raiseT > 0) {
+      const r = this.raiseT / 0.4;
+      target.y -= r * 0.3; rotX += r * 0.5; rotZ += r * 0.28;
+    }
+    // Inspect: rotate the weapon into view and turn it over.
+    if (this.inspectT > 0) {
+      const p = 1 - this.inspectT / this.inspectDur;
+      const env = Math.sin(Math.min(1, p) * Math.PI);
+      target.z += env * 0.12; target.x -= env * 0.06; target.y += env * 0.02;
+      rotY += env * 0.95; rotX += env * 0.35; rotZ += Math.sin(p * Math.PI * 2) * 0.16 * env;
+    }
+
     this.group.position.lerp(target, Math.min(1, dt * 18));
-    this.group.rotation.set(-this.recoilKick * 0.4 + this.sway.y, this.sway.x, 0);
+    this.group.rotation.set(rotX, rotY, rotZ);
   }
 
   private semiLatch = false;

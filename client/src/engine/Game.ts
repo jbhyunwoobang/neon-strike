@@ -74,7 +74,8 @@ export class Game {
   // Loadout.
   private grenadeType = 'frag';
   private grenadeCount = 3;
-  private grenadeLatch = false;
+  private grenadeAiming = false;
+  private arcLine: THREE.Line | null = null;
 
   // Multiplayer.
   private remotePlayers = new Map<string, { group: THREE.Group; body: THREE.Mesh; head: THREE.Mesh; tx: number; ty: number; tz: number; ry: number }>();
@@ -154,7 +155,7 @@ export class Game {
     // Apply chosen loadout.
     if (opts.startWeapon != null) this.weapon.switchTo(opts.startWeapon);
     if (opts.grenade) this.grenadeType = opts.grenade;
-    this.grenadeCount = 3; this.grenadeLatch = false;
+    this.grenadeCount = 3; this.grenadeAiming = false;
 
     // Reset vitals.
     this.health = this.maxHealth = 100;
@@ -176,6 +177,8 @@ export class Game {
       (window as any).__ns = {
         game: this, player: this.player, enemies: this.enemies, engine: this.engine, physics: this.physics,
         render: () => this.engine.composer.render(),
+        aimGrenade: () => this.updateGrenadeArc(),
+        inspect: () => this.weapon.inspect(),
         // Force a deterministic render (for screenshots when rAF is throttled):
         // aim the camera, refresh matrices, draw one frame.
         renderAt: (x: number, y: number, z: number, yaw: number, pitch: number) => {
@@ -313,6 +316,31 @@ export class Game {
     }
   }
 
+  /** Simulate + draw the predicted grenade trajectory while aiming. */
+  private updateGrenadeArc() {
+    const o = new THREE.Vector3(); this.engine.camera.getWorldPosition(o);
+    const d = new THREE.Vector3(); this.engine.camera.getWorldDirection(d);
+    const p = o.clone().addScaledVector(d, 0.5);
+    const v = d.clone().multiplyScalar(16).add(new THREE.Vector3(0, 3, 0));
+    const pts: THREE.Vector3[] = [p.clone()];
+    const step = 0.03;
+    for (let i = 0; i < 60; i++) {
+      v.y -= 22 * step; p.addScaledVector(v, step); pts.push(p.clone());
+      if (p.y <= 0.08) break;
+    }
+    if (!this.arcLine) {
+      const col = this.grenadeType === 'emp' ? 0x4aa0ff : 0xff7a3c;
+      const mat = new THREE.LineDashedMaterial({ color: col, dashSize: 0.35, gapSize: 0.25, transparent: true, opacity: 0.85 });
+      this.arcLine = new THREE.Line(new THREE.BufferGeometry(), mat);
+      this.engine.scene.add(this.arcLine);
+    }
+    this.arcLine.geometry.setFromPoints(pts);
+    this.arcLine.computeLineDistances();
+    this.arcLine.geometry.computeBoundingSphere();
+    // A small marker sphere at the landing point.
+    this.arcLine.visible = true;
+  }
+
   private onFire(origin: THREE.Vector3, dir: THREE.Vector3, weaponIndex: number) {
     // Eject a brass casing to the right of the weapon (skip melee).
     if (!WEAPONS[weaponIndex]?.melee) {
@@ -414,18 +442,24 @@ export class Game {
     if (this.input.wheel !== 0) { this.weapon.cycle(this.input.wheel > 0 ? 1 : -1); this.input.wheel = 0; }
     if (this.input.wantReload) { this.weapon.reload(); this.input.wantReload = false; }
     if (this.input.isDown('KeyV')) this.weapon.toggleFireMode();
+    if (this.input.isDown('KeyH')) this.weapon.inspect();
 
-    // Grenade throw (G) — one per press.
-    if (this.input.isDown('KeyG')) {
-      if (!this.grenadeLatch && this.grenadeCount > 0) {
-        this.grenadeLatch = true; this.grenadeCount--;
+    // Grenade: hold G to aim (shows predicted arc), release to throw.
+    if (this.input.isDown('KeyG') && this.grenadeCount > 0 && !this.dead) {
+      this.grenadeAiming = true;
+      this.updateGrenadeArc();
+    } else {
+      if (this.grenadeAiming && this.grenadeCount > 0) {
+        this.grenadeCount--;
         const o = new THREE.Vector3(); this.engine.camera.getWorldPosition(o);
         const d = new THREE.Vector3(); this.engine.camera.getWorldDirection(d);
         this.physics.throwGrenade(o.addScaledVector(d, 0.5), d, this.grenadeType as GrenadeType);
         this.audio.reload();
         this.toast(`${this.grenadeType.toUpperCase()} OUT · ${this.grenadeCount} LEFT`);
       }
-    } else { this.grenadeLatch = false; }
+      this.grenadeAiming = false;
+      if (this.arcLine) this.arcLine.visible = false;
+    }
 
     // Player movement.
     const beforeYaw = this.player.yaw, beforePitch = this.player.pitch;
