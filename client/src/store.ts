@@ -1,0 +1,197 @@
+/**
+ * store.ts — Global UI/application state (Zustand).
+ *
+ * Two concerns live here:
+ *   1. Screen/navigation + lobby/multiplayer state that React renders.
+ *   2. A HUD "mailbox" the imperative game engine writes into each frame; React
+ *      subscribes and re-renders only the changed HUD widgets.
+ *
+ * Settings are persisted to localStorage so sensitivity/keybinds/quality stick
+ * between sessions. The engine never imports React — it reads/writes this store
+ * directly, which keeps the render loop and the DOM cleanly decoupled.
+ */
+
+import { create } from 'zustand';
+import type { GameMode, PlayerInfo, RoomSnapshot, ChatLine } from './shared/protocol';
+
+export type Screen =
+  | 'intro'
+  | 'menu' | 'settings' | 'credits'
+  | 'mp-menu' | 'lobby'
+  | 'playing' | 'gameover';
+
+export type Quality = 'low' | 'medium' | 'high' | 'ultra';
+
+export interface Keybinds {
+  forward: string; back: string; left: string; right: string;
+  jump: string; crouch: string; sprint: string; reload: string;
+  slide: string; interact: string;
+}
+
+export interface Settings {
+  sensitivity: number;     // 0.05 – 1.5
+  fov: number;             // 70 – 110
+  invertY: boolean;
+  masterVolume: number;    // 0 – 1
+  quality: Quality;
+  showFps: boolean;
+  keybinds: Keybinds;
+}
+
+export interface Hud {
+  health: number;
+  armor: number;
+  ammo: number;
+  reserve: number;
+  weapon: string;
+  fireMode: string;
+  wave: number;
+  score: number;
+  kills: number;
+  enemiesLeft: number;
+  alive: boolean;
+  reloading: boolean;
+  fps: number;
+  hitmarker: number;       // timestamp of last hit (drives the marker animation)
+  headshot: boolean;
+  damageFlash: number;     // timestamp of last damage taken
+  interactHint: string;    // e.g. "HOLD F — UPGRADE"
+  toast: string;
+}
+
+export interface Multiplayer {
+  connected: boolean;
+  roomCode: string | null;
+  selfId: string | null;
+  isHost: boolean;
+  snapshot: RoomSnapshot | null;
+  players: PlayerInfo[];
+  chat: ChatLine[];
+  killFeed: { text: string; t: number }[];
+  ping: number;
+  error: string | null;
+}
+
+const DEFAULT_KEYBINDS: Keybinds = {
+  forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD',
+  jump: 'Space', crouch: 'ControlLeft', sprint: 'ShiftLeft',
+  reload: 'KeyR', slide: 'KeyC', interact: 'KeyF',
+};
+
+const DEFAULT_SETTINGS: Settings = {
+  sensitivity: 0.4, fov: 90, invertY: false, masterVolume: 0.7,
+  quality: 'high', showFps: true, keybinds: DEFAULT_KEYBINDS,
+};
+
+const SETTINGS_KEY = 'neon-strike:settings:v1';
+
+function loadSettings(): Settings {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (!raw) return DEFAULT_SETTINGS;
+    const parsed = JSON.parse(raw);
+    return {
+      ...DEFAULT_SETTINGS, ...parsed,
+      keybinds: { ...DEFAULT_KEYBINDS, ...(parsed.keybinds ?? {}) },
+    };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+const emptyHud: Hud = {
+  health: 100, armor: 0, ammo: 30, reserve: 120, weapon: 'RIFLE', fireMode: 'AUTO',
+  wave: 1, score: 0, kills: 0, enemiesLeft: 0, alive: true, reloading: false,
+  fps: 0, hitmarker: 0, headshot: false, damageFlash: 0, interactHint: '', toast: '',
+};
+
+interface State {
+  screen: Screen;
+  mode: GameMode;
+  username: string;
+  bestScore: number;
+
+  settings: Settings;
+  hud: Hud;
+  mp: Multiplayer;
+
+  // navigation
+  setScreen: (s: Screen) => void;
+  setMode: (m: GameMode) => void;
+  setUsername: (n: string) => void;
+
+  // settings
+  updateSettings: (patch: Partial<Settings>) => void;
+  setKeybind: (action: keyof Keybinds, code: string) => void;
+  resetSettings: () => void;
+
+  // hud (engine -> UI)
+  setHud: (patch: Partial<Hud>) => void;
+  resetHud: () => void;
+  recordScore: (score: number) => void;
+
+  // multiplayer
+  setMp: (patch: Partial<Multiplayer>) => void;
+  pushChat: (line: ChatLine) => void;
+  pushKill: (text: string) => void;
+  resetMp: () => void;
+}
+
+const BEST_KEY = 'neon-strike:best:v1';
+const NAME_KEY = 'neon-strike:name:v1';
+
+const emptyMp: Multiplayer = {
+  connected: false, roomCode: null, selfId: null, isHost: false,
+  snapshot: null, players: [], chat: [], killFeed: [], ping: 0, error: null,
+};
+
+export const useStore = create<State>((set, get) => ({
+  screen: 'intro',
+  mode: 'coop',
+  username: localStorage.getItem(NAME_KEY) ?? `Op-${Math.floor(Math.random() * 900 + 100)}`,
+  bestScore: Number(localStorage.getItem(BEST_KEY) ?? 0),
+
+  settings: loadSettings(),
+  hud: { ...emptyHud },
+  mp: { ...emptyMp },
+
+  setScreen: (screen) => set({ screen }),
+  setMode: (mode) => set({ mode }),
+  setUsername: (username) => { localStorage.setItem(NAME_KEY, username); set({ username }); },
+
+  updateSettings: (patch) => {
+    const settings = { ...get().settings, ...patch };
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    set({ settings });
+  },
+  setKeybind: (action, code) => {
+    const keybinds = { ...get().settings.keybinds, [action]: code };
+    const settings = { ...get().settings, keybinds };
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    set({ settings });
+  },
+  resetSettings: () => {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(DEFAULT_SETTINGS));
+    set({ settings: { ...DEFAULT_SETTINGS, keybinds: { ...DEFAULT_KEYBINDS } } });
+  },
+
+  setHud: (patch) => set((s) => ({ hud: { ...s.hud, ...patch } })),
+  resetHud: () => set({ hud: { ...emptyHud } }),
+  recordScore: (score) => {
+    if (score > get().bestScore) {
+      localStorage.setItem(BEST_KEY, String(score));
+      set({ bestScore: score });
+    }
+  },
+
+  setMp: (patch) => set((s) => ({ mp: { ...s.mp, ...patch } })),
+  pushChat: (line) => set((s) => ({ mp: { ...s.mp, chat: [...s.mp.chat.slice(-40), line] } })),
+  pushKill: (text) => set((s) => ({ mp: { ...s.mp, killFeed: [...s.mp.killFeed.slice(-6), { text, t: Date.now() }] } })),
+  resetMp: () => set({ mp: { ...emptyMp } }),
+}));
+
+/** Non-reactive accessors for the engine (avoids React hook rules). */
+export const store = {
+  get: useStore.getState,
+  set: useStore.setState,
+};
