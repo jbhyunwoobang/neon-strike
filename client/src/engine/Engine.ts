@@ -13,6 +13,7 @@ import * as THREE from 'three';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import type { Quality } from '../store';
@@ -42,6 +43,7 @@ export class Engine {
   readonly clock = new THREE.Clock();
 
   private bloomPass: UnrealBloomPass;
+  private gtaoPass?: GTAOPass;
   private updates: UpdateFn[] = [];
   private raf = 0;
   private running = false;
@@ -86,9 +88,27 @@ export class Engine {
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     pmrem.dispose();
 
-    // Postprocessing chain: render → bloom → output.
+    // Postprocessing chain: render → GTAO → bloom → output.
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
+
+    // Ground-Truth Ambient Occlusion — the working AO route (the older SSAOPass
+    // rendered black in this composer). GTAO runs a depth+normal prepass and
+    // multiplies soft contact-shadow occlusion into the beauty pass, so pillar
+    // bases, crevices and stacked geometry gain grounded depth. Medium+ only.
+    if (this.preset.shadows) {
+      const gtao = new GTAOPass(this.scene, this.camera, window.innerWidth, window.innerHeight);
+      gtao.output = GTAOPass.OUTPUT.Default;
+      gtao.updateGtaoMaterial({
+        radius: 0.55, distanceExponent: 1.2, thickness: 1.0,
+        scale: 1.1, samples: this.preset.pixelRatio >= 1.5 ? 16 : 9,
+        distanceFallOff: 1.0, screenSpaceRadius: false,
+      });
+      gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 4, radiusExponent: 1, rings: 2, samples: 8 });
+      this.gtaoPass = gtao;
+      this.composer.addPass(gtao);
+    }
+
     this.bloomPass = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
       0.62,  // strength

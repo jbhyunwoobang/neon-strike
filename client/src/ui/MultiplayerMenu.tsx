@@ -13,9 +13,9 @@ interface Props {
 }
 
 const MODES: { id: GameMode; label: string; desc: string }[] = [
-  { id: 'coop', label: 'Co-op Survival', desc: '2–6 players vs escalating waves' },
-  { id: 'ffa', label: 'Free For All', desc: '2–12 players, everyone for themselves' },
-  { id: 'tdm', label: 'Team Deathmatch', desc: '2–12 players, red vs blue' },
+  { id: 'coop', label: 'Co-op Survival', desc: '2–4 players vs escalating waves' },
+  { id: 'ffa', label: 'Free For All', desc: '2–4 players, everyone for themselves' },
+  { id: 'tdm', label: 'Team Deathmatch', desc: '2–4 players, red vs blue' },
 ];
 
 export function MultiplayerMenu({ serverUrl, deepCode, onHost, onJoin, onBack }: Props) {

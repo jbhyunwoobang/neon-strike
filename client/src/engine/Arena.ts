@@ -112,6 +112,43 @@ function makeFloorTexture(): THREE.Texture {
   return t;
 }
 
+/**
+ * Derive a tangent-space normal map from a procedural colour canvas by reading
+ * its luminance as a height field and taking the Sobel gradient. This reuses
+ * the aggregate speckle / floor scuffs already drawn, so specks bump outward
+ * and scratches cut grooves — real surface depth under raking ember light, at
+ * zero extra asset cost. Wrap/repeat/anisotropy are copied from the source.
+ */
+function heightToNormal(src: THREE.Texture, strength = 1): THREE.Texture {
+  const img = src.image as HTMLCanvasElement;
+  const size = img.width;
+  const data = img.getContext('2d')!.getImageData(0, 0, size, size).data;
+  const { c, g } = canvas2d(size);
+  const out = g.createImageData(size, size);
+  const lum = (x: number, y: number) => {
+    x = (x + size) % size; y = (y + size) % size;
+    const i = (y * size + x) * 4;
+    return (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114) / 255;
+  };
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const dx = (lum(x - 1, y) - lum(x + 1, y)) * strength;
+      const dy = (lum(x, y - 1) - lum(x, y + 1)) * strength;
+      const len = Math.hypot(dx, dy, 1);
+      const i = (y * size + x) * 4;
+      out.data[i] = ((dx / len) * 0.5 + 0.5) * 255;
+      out.data[i + 1] = ((dy / len) * 0.5 + 0.5) * 255;
+      out.data[i + 2] = (1 / len) * 0.5 * 255 + 127.5;
+      out.data[i + 3] = 255;
+    }
+  }
+  g.putImageData(out, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = src.wrapS; t.wrapT = src.wrapT;
+  t.repeat.copy(src.repeat); t.anisotropy = src.anisotropy;
+  return t;
+}
+
 export class Arena {
   readonly colliders: Collider[] = [];
   readonly spawnPoints: THREE.Vector3[] = [];
@@ -128,7 +165,9 @@ export class Arena {
   private neonMats: THREE.MeshBasicMaterial[];
   private groundMesh!: THREE.Mesh;
   private aggregateTex: THREE.Texture;
+  private aggregateNrm: THREE.Texture;
   private floorTex: THREE.Texture;
+  private floorNrm: THREE.Texture;
   private waterfallTex: THREE.Texture | null = null;
   private reflectors: Reflector[] = [];
 
@@ -138,9 +177,15 @@ export class Arena {
 
     /* ---- procedural textures + shared PBR materials ---- */
     this.aggregateTex = makeAggregateTexture();
+    this.aggregateNrm = heightToNormal(this.aggregateTex, 2.4);
     this.floorTex = makeFloorTexture();
+    this.floorNrm = heightToNormal(this.floorTex, 1.8);
     this.materials = {
-      concrete: new THREE.MeshStandardMaterial({ color: 0x9a948a, roughness: 0.94, metalness: 0.05, map: this.aggregateTex }),
+      concrete: new THREE.MeshStandardMaterial({
+        color: 0x9a948a, roughness: 0.94, metalness: 0.05,
+        map: this.aggregateTex, normalMap: this.aggregateNrm,
+        normalScale: new THREE.Vector2(0.7, 0.7),
+      }),
       metal: new THREE.MeshStandardMaterial({ color: 0x565049, roughness: 0.5, metalness: 0.8 }),
       glass: new THREE.MeshStandardMaterial({ color: 0x1a2220, roughness: 0.18, metalness: 0.2, transparent: true, opacity: 0.55 }),
     };
@@ -208,7 +253,10 @@ export class Arena {
     const geo = new THREE.PlaneGeometry(ARENA_HALF * 2 + 40, ARENA_HALF * 2 + 40);
     // Wet polished concrete — scuffed + scratched, slightly metallic so ember
     // light streaks across it and the light-pool reflects.
-    const mat = new THREE.MeshStandardMaterial({ color: 0xccc6ba, map: this.floorTex, roughness: 0.6, metalness: 0.14 });
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0xccc6ba, map: this.floorTex, normalMap: this.floorNrm,
+      normalScale: new THREE.Vector2(0.5, 0.5), roughness: 0.6, metalness: 0.14,
+    });
     this.groundMesh = new THREE.Mesh(geo, mat);
     this.groundMesh.rotation.x = -Math.PI / 2;
     this.groundMesh.receiveShadow = true;

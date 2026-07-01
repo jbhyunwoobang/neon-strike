@@ -80,6 +80,9 @@ export class WeaponController {
   private ray = new THREE.Raycaster();
   private group = new THREE.Group();
   private modelParts: THREE.Object3D[] = [];
+  // Metallic view-model materials whose IBL reflection strength is animated.
+  private metalMats: THREE.MeshStandardMaterial[] = [];
+  private vmClock = 0;
 
   index = 2;                 // start on the AR
   ammo: number[] = [];
@@ -136,6 +139,14 @@ export class WeaponController {
     const glove = new THREE.MeshStandardMaterial({ color: 0x1b1b20, roughness: 0.82, metalness: 0.12 });
     const emberDot = new THREE.MeshBasicMaterial({ color: 0xd9552b });
     const lens = new THREE.MeshStandardMaterial({ color: 0x3a5a7a, roughness: 0.1, metalness: 0.3, emissive: 0x14324a, emissiveIntensity: 0.6 });
+
+    // Register the metallic finishes for animated IBL reflections. baseEnv scales
+    // how strongly each finish catches the environment — bare steel glints hard,
+    // painted tan/olive barely shimmer. update() modulates envMapIntensity around
+    // these so highlights breathe across the metal and flare briefly on fast turns.
+    this.metalMats = [gun, steel, tan, olive];
+    gun.userData.baseEnv = 1.0; steel.userData.baseEnv = 1.35;
+    tan.userData.baseEnv = 0.5; olive.userData.baseEnv = 0.6;
 
     const add = (mesh: THREE.Mesh, x: number, y: number, z: number, rx = 0, ry = 0, rz = 0) => {
       mesh.position.set(x, y, z); mesh.rotation.set(rx, ry, rz);
@@ -400,6 +411,14 @@ export class WeaponController {
     this.sway.y += (-lookDelta.dy * 0.5 - this.sway.y) * Math.min(1, dt * 8);
     this.recoilKick = Math.max(0, this.recoilKick - dt * 3);
     const bob = Math.sin(performance.now() * 0.008) * Math.min(0.02, moveSpeed * 0.003);
+
+    // Animated reflections: a slow breathing highlight plus a brief glint when
+    // the view swings, so the metal reads as catching moving light rather than a
+    // static envmap. Cheap — just modulates envMapIntensity, no recompiles.
+    this.vmClock += dt;
+    const swing = Math.min(1, Math.abs(lookDelta.dx) + Math.abs(lookDelta.dy));
+    const shimmer = 1 + Math.sin(this.vmClock * 1.7) * 0.16 + swing * 0.8 + this.recoilKick * 0.5;
+    for (const m of this.metalMats) m.envMapIntensity = (m.userData.baseEnv ?? 1) * shimmer;
 
     const target = new THREE.Vector3().lerpVectors(this.basePos, this.adsPos, this.adsBlend);
     target.x += this.sway.x * (1 - this.adsBlend);

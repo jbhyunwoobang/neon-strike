@@ -45,7 +45,7 @@ export function Lobby({ net, onStart, onLeave }: { net: Net | null; onStart: () 
             ) : <span className="val">{MODE_LABEL[snap?.mode ?? 'coop']}</span>}
           </div>
 
-          <h2 style={{ marginTop: 14 }}>Squad ({snap?.players.length ?? 0})</h2>
+          <h2 style={{ marginTop: 14 }}>Squad ({snap?.players.length ?? 0} / 4)</h2>
           <div className="playerlist">
             {snap?.players.map((p) => (
               <div className="pl" key={p.id}>

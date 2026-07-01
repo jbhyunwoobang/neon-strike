@@ -25,6 +25,7 @@ import {
 
 const PORT = Number(process.env.PORT ?? 8080);
 const ORIGIN = process.env.CLIENT_ORIGIN ?? '*';
+const MAX_PLAYERS = 4; // hard cap: up to 4 players per room the host creates
 
 const app = express();
 app.use(cors({ origin: ORIGIN }));
@@ -81,7 +82,7 @@ io.on('connection', (socket) => {
     const room = manager.get(code);
     if (!room) return ack({ error: 'Room not found' });
     if (room.inGame && room.mode === 'coop') return ack({ error: 'Match already in progress' });
-    if (room.size >= 12) return ack({ error: 'Room is full' });
+    if (room.size >= MAX_PLAYERS) return ack({ error: 'Room is full' });
     leaveCurrent();
     socket.data.name = name;
     room.addPlayer(socket.id, name);
