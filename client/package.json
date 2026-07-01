@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.14.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "socket.io-client": "^4.7.5",

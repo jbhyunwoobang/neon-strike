@@ -257,6 +257,9 @@ export class WeaponController {
   /** Manual inspect animation (rotate the weapon to examine it). */
   inspect() { if (!this.reloading && this.inspectT <= 0) this.inspectT = this.inspectDur; }
 
+  /** Hide/show the view-model (e.g. while driving a vehicle). */
+  setVisible(v: boolean) { this.group.visible = v; }
+
   cycle(dir: number) {
     let i = (this.index + dir + WEAPONS.length) % WEAPONS.length;
     this.switchTo(i);

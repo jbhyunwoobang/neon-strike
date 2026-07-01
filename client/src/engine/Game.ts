@@ -25,6 +25,7 @@ import { EnemyManager } from './Enemies';
 import { WaveManager } from './WaveManager';
 import { Net } from './Net';
 import { Physics } from './Physics';
+import { RapierWorld } from './RapierWorld';
 import { store } from '../store';
 import type { GrenadeType } from '../store';
 import type { GameMode, PlayerTransform, PlayerInfo } from '../shared/protocol';
@@ -47,6 +48,9 @@ export class Game {
   private audio: Audio;
   private effects: Effects;
   private physics!: Physics;
+  private rapier!: RapierWorld;
+  private driving = false;
+  private driveExitLatch = false;
   private arena!: Arena;
   private player!: Player;
   private weapon!: WeaponController;
@@ -112,11 +116,27 @@ export class Game {
       scene: this.engine.scene, effects: this.effects, audio: this.audio,
       onExplosion: (pos, radius, dmg) => {
         this.enemies.damageArea(pos, radius, dmg);
+        this.rapier.explode(pos, radius, 14);      // shove crates
         if (pos.distanceTo(this.player.pos) < radius) this.damagePlayer(dmg * (1 - pos.distanceTo(this.player.pos) / radius), null);
       },
       onFlash: () => store.get().setHud({ flash: performance.now() }),
       onEmp: (pos, radius) => this.enemies.empStun(pos, radius),
     });
+
+    // Real rigid-body world (async WASM). Populated once it initialises; the
+    // game runs regardless (graceful fallback to the custom Physics layer).
+    this.rapier = new RapierWorld(this.engine.scene);
+    if (this.mode === 'coop' && !this.net) {
+      let seed = (opts.seed ?? 1) >>> 0;
+      const rng = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+      this.rapier.init().then(() => {
+        if (!this.running) return;
+        this.rapier.addGround();
+        this.rapier.addStatics(this.arena.colliders);
+        this.rapier.spawnCrates(rng, 16);
+        this.rapier.spawnVehicle(-24, 14);
+      });
+    }
 
     this.enemies = new EnemyManager({
       scene: this.engine.scene,
@@ -126,7 +146,10 @@ export class Game {
       getPlayerPos: () => this.player.pos,
       onPlayerDamage: (d) => this.damagePlayer(d, null),
       onKill: (sc, type, head) => this.onEnemyKilled(sc, type, head),
-      onRagdoll: (group, hitDir) => this.physics.ragdoll(group, hitDir),
+      onRagdoll: (group, hitDir) => {
+        if (this.rapier.ready) this.rapier.ragdoll(group, hitDir);   // real physics tumble
+        else this.physics.ragdoll(group, hitDir);                    // scripted fallback flop
+      },
     });
 
     this.weapon = new WeaponController({
@@ -219,6 +242,7 @@ export class Game {
     this.audio.dispose();
     this.enemies?.clear();
     this.physics?.clear();
+    this.rapier?.clear();
     this.remotePlayers.forEach((r) => this.engine.scene.remove(r.group));
     this.remotePlayers.clear();
     this.engine.dispose();
@@ -349,6 +373,7 @@ export class Game {
       const up = new THREE.Vector3().crossVectors(right, dir).normalize();
       const port = origin.clone().addScaledVector(dir, 0.35).addScaledVector(right, 0.16).addScaledVector(up, -0.06);
       this.physics.ejectCasing(port, right, up);
+      this.rapier.shoot(origin, dir, 7);   // bullets shove pushable crates
     }
     if (this.net) {
       this.net.sendFire({ ox: origin.x, oy: origin.y, oz: origin.z, dx: dir.x, dy: dir.y, dz: dir.z, weapon: weaponIndex });
@@ -437,38 +462,70 @@ export class Game {
       return;
     }
 
-    // Weapon switching (number keys + wheel).
-    for (let i = 1; i <= 9; i++) if (this.input.isDown(`Digit${i}`)) this.weapon.switchTo(i - 1);
-    if (this.input.wheel !== 0) { this.weapon.cycle(this.input.wheel > 0 ? 1 : -1); this.input.wheel = 0; }
-    if (this.input.wantReload) { this.weapon.reload(); this.input.wantReload = false; }
-    if (this.input.isDown('KeyV')) this.weapon.toggleFireMode();
-    if (this.input.isDown('KeyH')) this.weapon.inspect();
-
-    // Grenade: hold G to aim (shows predicted arc), release to throw.
-    if (this.input.isDown('KeyG') && this.grenadeCount > 0 && !this.dead) {
-      this.grenadeAiming = true;
-      this.updateGrenadeArc();
-    } else {
-      if (this.grenadeAiming && this.grenadeCount > 0) {
-        this.grenadeCount--;
-        const o = new THREE.Vector3(); this.engine.camera.getWorldPosition(o);
-        const d = new THREE.Vector3(); this.engine.camera.getWorldDirection(d);
-        this.physics.throwGrenade(o.addScaledVector(d, 0.5), d, this.grenadeType as GrenadeType);
-        this.audio.reload();
-        this.toast(`${this.grenadeType.toUpperCase()} OUT · ${this.grenadeCount} LEFT`);
+    // Vehicle enter / exit (interact key) when near.
+    const vpos = this.rapier.vehiclePos();
+    if (this.input.wantInteract && !this.driveExitLatch) {
+      this.driveExitLatch = true;
+      if (this.driving) {
+        this.driving = false;
+        if (vpos) this.player.reset(vpos.x + 3, 0, vpos.z);
+        this.weapon.setVisible(true);
+        this.toast('DISMOUNTED');
+      } else if (vpos && vpos.distanceTo(this.player.pos) < 5) {
+        this.driving = true;
+        this.weapon.setVisible(false);
+        this.toast('DRIVING · [F] EXIT');
       }
-      this.grenadeAiming = false;
-      if (this.arcLine) this.arcLine.visible = false;
     }
+    if (!this.input.wantInteract) this.driveExitLatch = false;
 
-    // Player movement.
-    const beforeYaw = this.player.yaw, beforePitch = this.player.pitch;
-    this.player.update(dt);
-    this.lastLook = { dx: this.player.yaw - beforeYaw, dy: this.player.pitch - beforePitch };
+    if (this.driving && vpos) {
+      // Drive with WASD + chase camera; the weapon/on-foot systems are skipped.
+      const thr = (this.input.action('forward') ? 1 : 0) - (this.input.action('back') ? 1 : 0);
+      const steer = (this.input.action('right') ? 1 : 0) - (this.input.action('left') ? 1 : 0);
+      const pose = this.rapier.driveVehicle(thr, steer);
+      if (pose) {
+        const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(pose.quat);
+        const cam = pose.pos.clone().addScaledVector(fwd, -8).add(new THREE.Vector3(0, 4.5, 0));
+        this.engine.camera.position.copy(cam);
+        this.engine.camera.lookAt(pose.pos.x, pose.pos.y + 1.2, pose.pos.z);
+        this.player.pos.set(pose.pos.x, 0, pose.pos.z); // keep player near for enemy AI
+      }
+    } else {
+      // ---- on-foot ----
+      // Weapon switching (number keys + wheel).
+      for (let i = 1; i <= 9; i++) if (this.input.isDown(`Digit${i}`)) this.weapon.switchTo(i - 1);
+      if (this.input.wheel !== 0) { this.weapon.cycle(this.input.wheel > 0 ? 1 : -1); this.input.wheel = 0; }
+      if (this.input.wantReload) { this.weapon.reload(); this.input.wantReload = false; }
+      if (this.input.isDown('KeyV')) this.weapon.toggleFireMode();
+      if (this.input.isDown('KeyH')) this.weapon.inspect();
 
-    // Weapon (trigger + ADS from input).
-    const moveSpeed = Math.hypot(this.player.vel.x, this.player.vel.z);
-    this.weapon.update(dt, this.input.firing, this.input.aiming, this.lastLook, moveSpeed);
+      // Grenade: hold G to aim (shows predicted arc), release to throw.
+      if (this.input.isDown('KeyG') && this.grenadeCount > 0 && !this.dead) {
+        this.grenadeAiming = true;
+        this.updateGrenadeArc();
+      } else {
+        if (this.grenadeAiming && this.grenadeCount > 0) {
+          this.grenadeCount--;
+          const o = new THREE.Vector3(); this.engine.camera.getWorldPosition(o);
+          const d = new THREE.Vector3(); this.engine.camera.getWorldDirection(d);
+          this.physics.throwGrenade(o.addScaledVector(d, 0.5), d, this.grenadeType as GrenadeType);
+          this.audio.reload();
+          this.toast(`${this.grenadeType.toUpperCase()} OUT · ${this.grenadeCount} LEFT`);
+        }
+        this.grenadeAiming = false;
+        if (this.arcLine) this.arcLine.visible = false;
+      }
+
+      // Player movement.
+      const beforeYaw = this.player.yaw, beforePitch = this.player.pitch;
+      this.player.update(dt);
+      this.lastLook = { dx: this.player.yaw - beforeYaw, dy: this.player.pitch - beforePitch };
+
+      // Weapon (trigger + ADS from input).
+      const moveSpeed = Math.hypot(this.player.vel.x, this.player.vel.z);
+      this.weapon.update(dt, this.input.firing, this.input.aiming, this.lastLook, moveSpeed);
+    }
 
     // Enemies.
     if (this.enemies.networked) this.enemies.updateNet(dt);
@@ -480,6 +537,7 @@ export class Game {
     this.arena.update(dt, elapsed, this.engine.camera.position);
     this.effects.update(dt);
     this.physics.update(dt);
+    this.rapier.step(dt);
 
     // Interpolate remote players.
     this.remotePlayers.forEach((r) => {

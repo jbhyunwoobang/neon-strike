@@ -18,7 +18,7 @@ export default defineConfig({
   build: {
     target: 'es2020',
     sourcemap: false,
-    chunkSizeWarningLimit: 1400,
+    chunkSizeWarningLimit: 2600,   // Rapier's WASM chunk is large but lazy-loaded
     rollupOptions: {
       output: {
         manualChunks: {
