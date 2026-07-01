@@ -37,8 +37,6 @@ jobs:
           npm run build
           cp dist/index.html dist/404.html   # SPA fallback for deep links
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - uses: actions/upload-pages-artifact@v3
         with:
           path: client/dist
