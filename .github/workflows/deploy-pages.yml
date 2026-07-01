@@ -31,7 +31,9 @@ jobs:
         env:
           GH_PAGES: 'true'
         run: |
-          npm ci
+          # --no-workspaces: this dir is a listed workspace of the repo-root
+          # package.json; without the flag npm looks for a lockfile at the root.
+          npm ci --no-workspaces --no-audit --no-fund
           npm run build
           cp dist/index.html dist/404.html   # SPA fallback for deep links
       - uses: actions/configure-pages@v5
