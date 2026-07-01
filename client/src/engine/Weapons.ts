@@ -163,17 +163,60 @@ export class WeaponController {
       add(box(0.028, 0.05, 0.03, gun), 0, 0.088, z); // ring mount
     };
     const bipod = (z: number) => { for (const s of [-1, 1]) add(cyl(0.006, 0.006, 0.16, steel, 6), s * 0.05, -0.05, z, 0.5, 0, s * 0.4); };
+
+    // ---- shared greebles: the fine detail that makes each gun read as a real
+    // machine rather than a block — trigger guards, rails, muzzle devices, mag
+    // ribs, charging handles. Reused across the weapon cases below. ----
+    const tguard = (z: number, y = -0.03) => {                       // trigger-guard loop + blade
+      add(new THREE.Mesh(new THREE.TorusGeometry(0.027, 0.005, 8, 18), gun), 0, y, z, 0, Math.PI / 2, 0);
+      add(box(0.009, 0.026, 0.006, steel), 0, y + 0.01, z - 0.006);
+    };
+    const rail = (z0: number, z1: number, y: number, w = 0.03) => {   // picatinny ridges z0..z1
+      const n = Math.max(2, Math.round(Math.abs(z1 - z0) / 0.02));
+      for (let i = 0; i < n; i++) add(box(w, 0.007, 0.01, gun), 0, y, z0 + (z1 - z0) * (i / (n - 1)));
+    };
+    const flashHider = (z: number, r: number, y = 0.045) => {         // slotted birdcage muzzle
+      add(cyl(r * 1.2, r * 1.2, 0.06, steel, 12), 0, y, z, Math.PI / 2, 0, 0);
+      for (let i = 0; i < 4; i++) add(box(r * 0.5, r * 2.6, 0.006, poly), 0, y, z - 0.008 - i * 0.012, 0, 0, i * 0.5);
+    };
+    const magRibs = (x: number, y: number, z: number, w: number, tilt: number, n = 3) => { // stamped witness ribs
+      for (let i = 0; i < n; i++) add(box(w * 1.02, 0.006, 0.05, gun), x, y - i * 0.045, z + i * 0.006, tilt, 0, 0);
+    };
     const id = this.def.id;
     let fgZ = -0.42, kind: 'rifle' | 'pistol' | 'knife' = 'rifle';
 
     switch (id) {
       case 'knife': {
-        add(box(0.032, 0.04, 0.14, wood), 0, -0.02, 0.03);                 // handle
-        add(box(0.07, 0.014, 0.022, steel), 0, -0.02, -0.05);              // cross guard
-        const blade = add(box(0.01, 0.055, 0.3, steel), 0.0, -0.005, -0.23); // blade
-        (blade.geometry as THREE.BoxGeometry).translate(0, 0, 0);
-        add(box(0.003, 0.02, 0.28, gun), 0.004, -0.005, -0.23);            // fuller line
-        kind = 'knife'; break;
+        kind = 'knife';
+        // Drop-point blade built from an extruded 2-D profile — a real knife
+        // silhouette: straight spine, curved belly rising to a sharp point,
+        // beveled all round so the edge catches light. Length runs to -Z.
+        const bl = 0.30, sp = 0.03;
+        const s = new THREE.Shape();
+        s.moveTo(0, sp * 0.55);                                      // ricasso top (at guard)
+        s.lineTo(bl * 0.60, sp);                                     // spine, slight rise
+        s.quadraticCurveTo(bl * 0.90, sp * 0.9, bl, 0);             // drop to the tip
+        s.quadraticCurveTo(bl * 0.70, -sp * 0.95, bl * 0.32, -sp * 0.9); // belly / cutting edge
+        s.lineTo(0, -sp * 0.7);                                      // edge back to guard
+        s.closePath();
+        const geo = new THREE.ExtrudeGeometry(s, { depth: 0.012, bevelEnabled: true, bevelThickness: 0.005, bevelSize: 0.004, bevelSegments: 2, steps: 1 });
+        geo.translate(0, 0, -0.006);                                 // centre thickness on X after the Y-rotation
+        add(new THREE.Mesh(geo, steel), 0, 0.0, -0.06, 0, Math.PI / 2, 0);
+        // Fuller (blood groove) — a thin dark inset down each face of the blade.
+        add(box(0.002, 0.007, 0.2, gun), 0.008, 0.006, -0.2);
+        add(box(0.002, 0.007, 0.2, gun), -0.008, 0.006, -0.2);
+        // Partial spine serrations near the guard.
+        for (let i = 0; i < 5; i++) add(box(0.012, 0.014, 0.006, steel), 0, 0.03, -0.10 - i * 0.017, 0, 0, Math.PI / 4);
+        // Bolster + cross guard with an upswept quillon.
+        add(box(0.05, 0.03, 0.03, gun), 0, 0.0, -0.05);
+        add(box(0.075, 0.018, 0.026, gun), 0, 0.0, -0.055);
+        add(box(0.018, 0.05, 0.02, gun), 0.028, 0.008, -0.05, 0, 0, -0.3); // upswept quillon
+        // Contoured micarta handle with finger grooves + a steel pommel.
+        add(box(0.03, 0.05, 0.15, wood), 0, -0.006, 0.05);
+        for (let i = 0; i < 4; i++) add(cyl(0.017, 0.017, 0.03, gun, 10), 0, -0.03, 0.005 + i * 0.035, Math.PI / 2, 0, 0);
+        add(box(0.034, 0.034, 0.022, steel), 0, -0.006, 0.132);     // pommel
+        add(cyl(0.005, 0.005, 0.024, poly, 8), 0, -0.022, 0.14, Math.PI / 2, 0, 0); // lanyard hole
+        break;
       }
       case 'pistol': {
         add(box(0.05, 0.058, 0.26, gun), 0, 0.05, -0.12);                  // slide
@@ -183,7 +226,13 @@ export class WeaponController {
         add(box(0.038, 0.02, 0.06, poly), 0, -0.02, -0.02);                // trigger guard
         bar(0.012, 0.06, steel, -0.26);
         add(box(0.008, 0.014, 0.01, gun), 0, 0.086, -0.24);               // front sight
+        add(box(0.008, 0.008, 0.008, emberDot), 0, 0.088, -0.238);        // front sight dot
         add(box(0.032, 0.016, 0.012, gun), 0, 0.086, 0.0);                // rear sight
+        tguard(-0.05, -0.008);                                            // trigger guard + blade
+        for (let i = 0; i < 6; i++) add(box(0.052, 0.026, 0.004, gun), 0, 0.05, -0.03 + i * 0.011); // rear cocking serrations
+        add(box(0.026, 0.026, 0.06, poly), 0.02, 0.055, -0.09);           // ejection port (right)
+        add(box(0.03, 0.014, 0.05, gun), 0, -0.01, -0.2);                 // underbarrel accessory rail
+        add(box(0.008, 0.012, 0.01, steel), 0.024, 0.02, -0.03);          // mag release button
         kind = 'pistol'; break;
       }
       case 'smg': {
@@ -197,6 +246,13 @@ export class WeaponController {
         add(box(0.05, 0.06, 0.03, poly), 0, 0.03, 0.24);                   // stock plate
         add(box(0.05, 0.05, 0.06, gun), 0, 0.1, -0.1);                    // compact red-dot
         add(box(0.036, 0.036, 0.004, lens), 0, 0.108, -0.132);
+        add(box(0.004, 0.004, 0.004, emberDot), 0, 0.108, -0.129);        // red-dot reticle
+        tguard(-0.06, -0.02);
+        add(box(0.026, 0.03, 0.06, poly), 0.026, 0.03, -0.06);            // ejection port (right)
+        add(box(0.01, 0.016, 0.02, steel), -0.03, 0.02, -0.02);           // fire selector (left)
+        rail(-0.02, -0.18, 0.075);                                        // top handguard rail
+        magRibs(0, -0.06, -0.16, 0.042, -0.1, 3);                         // mag witness ribs
+        add(box(0.01, 0.012, 0.014, steel), 0.028, -0.02, -0.05);         // charging handle
         fgZ = -0.3; break;
       }
       case 'rifle': { // AR-14 carbine
@@ -204,6 +260,13 @@ export class WeaponController {
         add(box(0.038, 0.038, 0.004, lens), 0, 0.115, -0.155);
         add(box(0.004, 0.004, 0.004, emberDot), 0, 0.115, -0.152);
         add(box(0.01, 0.05, 0.01, gun), 0, 0.11, -0.5);                    // flip front sight
+        add(box(0.004, 0.004, 0.004, emberDot), 0, 0.115, -0.152);         // red-dot reticle
+        tguard(-0.07, -0.03);
+        add(box(0.014, 0.03, 0.05, steel), 0.032, 0.06, 0.06);            // charging-handle latch (right)
+        add(cyl(0.014, 0.014, 0.02, gun, 8), 0.03, 0.02, -0.02, 0, 0, Math.PI / 2); // forward assist
+        rail(-0.3, -0.5, 0.075, 0.028);                                   // handguard top rail
+        magRibs(0, -0.12, -0.03, 0.05, -0.12, 4);                         // mag ribs
+        add(box(0.01, 0.01, 0.012, steel), 0.03, -0.02, -0.06);           // mag release
         fgZ = -0.46; break;
       }
       case 'battle': { // BR-55 — long tan battle rifle, big mag, full stock
@@ -216,6 +279,10 @@ export class WeaponController {
         bar(0.016, 0.5, steel, -0.66);
         add(cyl(0.026, 0.022, 0.07, steel, 10), 0, 0.045, -0.92, Math.PI / 2, 0, 0);
         scope(-0.16, 0.16, 0.026);                                         // short optic
+        tguard(-0.07, -0.02);
+        magRibs(0, -0.18, -0.06, 0.058, -0.14, 4);
+        add(box(0.014, 0.03, 0.05, steel), 0.034, 0.05, 0.02);            // charging handle
+        rail(-0.3, -0.56, 0.072, 0.03);                                   // handguard rail
         fgZ = -0.52; break;
       }
       case 'dmr': { // DMR-7 — marksman, long barrel + medium scope, skeleton stock
@@ -229,6 +296,10 @@ export class WeaponController {
         bar(0.015, 0.56, steel, -0.7);
         add(cyl(0.024, 0.02, 0.06, steel, 10), 0, 0.045, -0.98, Math.PI / 2, 0, 0);
         scope(-0.15, 0.24, 0.028);
+        tguard(-0.07, -0.03);
+        magRibs(0, -0.14, -0.02, 0.05, -0.12, 4);
+        add(box(0.014, 0.03, 0.05, steel), 0.032, 0.05, 0.0);            // charging handle
+        flashHider(-1.0, 0.015);                                         // slotted muzzle
         fgZ = -0.5; break;
       }
       case 'sniper': { // RAIL-X — huge scope, very long barrel, bolt, bipod
@@ -243,6 +314,10 @@ export class WeaponController {
         bipod(-0.9);
         scope(-0.12, 0.34, 0.036);                                         // large scope
         add(cyl(0.05, 0.05, 0.05, gun, 14), 0, 0.125, 0.09, Math.PI / 2, 0, 0); // big objective bell rear
+        tguard(-0.08, -0.03);
+        magRibs(0, -0.14, 0.0, 0.05, -0.08, 3);
+        rail(-0.06, 0.24, 0.088, 0.03);                                  // scope base rail
+        add(cyl(0.012, 0.012, 0.03, gun, 8), 0, 0.05, 0.06, 0, 0, Math.PI / 2); // bolt-handle knob
         fgZ = -0.6; break;
       }
       case 'lmg': { // LMG-40 — box mag, heavy ribbed barrel, bipod, carry handle
@@ -257,6 +332,10 @@ export class WeaponController {
         add(cyl(0.03, 0.026, 0.07, steel, 10), 0, 0.045, -0.98, Math.PI / 2, 0, 0);
         bipod(-0.82);
         add(box(0.05, 0.05, 0.06, gun), 0, 0.115, -0.14); add(box(0.038, 0.038, 0.004, lens), 0, 0.125, -0.174); // optic
+        tguard(-0.08, -0.02);
+        add(box(0.03, 0.05, 0.06, olive), 0, -0.02, -0.04);              // feed-tray cover hump
+        add(box(0.012, 0.03, 0.05, steel), 0.034, 0.04, -0.06);          // charging handle
+        magRibs(-0.001, -0.1, -0.04, 0.14, 0, 3);                        // ammo-box latch ribs
         fgZ = -0.5; break;
       }
       case 'shotgun': { // BREACH-12 — pump, tube mag under barrel, wood furniture
@@ -267,6 +346,11 @@ export class WeaponController {
         add(box(0.056, 0.11, 0.22, wood), 0, 0.02, 0.2);                   // wood stock
         add(box(0.05, 0.13, 0.05, wood), 0, -0.07, 0.08, 0.34, 0, 0);      // grip
         add(box(0.014, 0.014, 0.014, emberDot), 0, 0.108, -0.62);          // bead front sight
+        tguard(-0.01, -0.01);
+        for (let i = 0; i < 4; i++) add(cyl(0.021, 0.021, 0.012, gun, 10), 0, 0.075, -0.2 - i * 0.09, Math.PI / 2, 0, 0); // barrel bands
+        add(box(0.05, 0.03, 0.05, gun), 0, 0.058, -0.03);                 // ejection port / receiver top
+        add(box(0.012, 0.03, 0.05, steel), 0.032, 0.03, -0.03);           // bolt handle (right)
+        add(box(0.03, 0.014, 0.04, steel), 0, 0.005, 0.02);               // loading gate / trigger group
         fgZ = -0.3; break;
       }
     }
