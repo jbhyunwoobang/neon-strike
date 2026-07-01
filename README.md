@@ -1,5 +1,13 @@
 # NEON STRIKE
 
+### ▶ Play now: **https://jbhyunwoobang.github.io/neon-strike/**
+
+*(Live via GitHub Pages — single-player is fully playable instantly. Online
+multiplayer needs the companion server; deploy it to Render + the client to
+Vercel in ~2 clicks each — see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).)*
+
+---
+
 A browser-native, **AAA-inspired first-person shooter** set in a futuristic
 brutalist megacity (2095). Wave-survival single player and online multiplayer
 (co-op survival + PvP), running entirely in the browser and shareable by URL.
