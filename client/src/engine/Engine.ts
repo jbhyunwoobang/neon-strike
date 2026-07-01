@@ -14,6 +14,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import type { Quality } from '../store';
 
 export type UpdateFn = (dt: number, elapsed: number) => void;
@@ -77,7 +78,15 @@ export class Engine {
     // weapon view-model + its light) are included in the render traversal.
     this.scene.add(this.camera);
 
-    // Postprocessing chain.
+    // Image-based lighting: prefilter an environment so every PBR surface
+    // (gunmetal, glass, water, crates) picks up realistic reflections + fill —
+    // the single biggest step toward an "engine-rendered" look in WebGL.
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    pmrem.compileEquirectangularShader();
+    this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
+
+    // Postprocessing chain: render → bloom → output.
     this.composer = new EffectComposer(this.renderer);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
     this.bloomPass = new UnrealBloomPass(

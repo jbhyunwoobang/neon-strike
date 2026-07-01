@@ -121,14 +121,18 @@ export class WeaponController {
   ejectPortLocal = new THREE.Vector3(0.06, 0.02, -0.05);
 
   private buildViewModel() {
-    // Rebuild a detailed procedural weapon + gloved hands for the current gun.
+    // Rebuild a detailed procedural weapon + gloved hands. Each weapon has its
+    // own distinct, recognisable silhouette + materials.
     this.modelParts.forEach((p) => { this.group.remove(p); });
     this.modelParts = [];
 
-    // Shared materials.
-    const gun = new THREE.MeshStandardMaterial({ color: 0x2a2c33, roughness: 0.5, metalness: 0.72 });
-    const poly = new THREE.MeshStandardMaterial({ color: 0x15161b, roughness: 0.72, metalness: 0.2 });
-    const steel = new THREE.MeshStandardMaterial({ color: 0x3c3f47, roughness: 0.32, metalness: 0.92 });
+    // Palette — distinct finishes per weapon family.
+    const gun = new THREE.MeshStandardMaterial({ color: 0x2a2c33, roughness: 0.45, metalness: 0.78 });
+    const poly = new THREE.MeshStandardMaterial({ color: 0x15161b, roughness: 0.7, metalness: 0.2 });
+    const steel = new THREE.MeshStandardMaterial({ color: 0x40444c, roughness: 0.28, metalness: 0.95 });
+    const tan = new THREE.MeshStandardMaterial({ color: 0x8a774f, roughness: 0.6, metalness: 0.25 });
+    const olive = new THREE.MeshStandardMaterial({ color: 0x3a4230, roughness: 0.6, metalness: 0.3 });
+    const wood = new THREE.MeshStandardMaterial({ color: 0x5a3f26, roughness: 0.6, metalness: 0.1 });
     const glove = new THREE.MeshStandardMaterial({ color: 0x1b1b20, roughness: 0.82, metalness: 0.12 });
     const emberDot = new THREE.MeshBasicMaterial({ color: 0xd9552b });
     const lens = new THREE.MeshStandardMaterial({ color: 0x3a5a7a, roughness: 0.1, metalness: 0.3, emissive: 0x14324a, emissiveIntensity: 0.6 });
@@ -138,87 +142,149 @@ export class WeaponController {
       this.modelParts.push(mesh); this.group.add(mesh); return mesh;
     };
     const box = (w: number, h: number, dp: number, m: THREE.Material) => new THREE.Mesh(new THREE.BoxGeometry(w, h, dp), m);
-    const cyl = (rt: number, rb: number, len: number, m: THREE.Material, seg = 10) => new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, len, seg), m);
-
+    const cyl = (rt: number, rb: number, len: number, m: THREE.Material, seg = 12) => new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, len, seg), m);
+    const bar = (rt: number, len: number, m: THREE.Material, z: number, y = 0.045, x = 0) => add(cyl(rt, rt, len, m, 12), x, y, z, Math.PI / 2, 0, 0); // barrel along -Z
+    const scope = (z: number, tubeLen: number, tubeR: number) => {
+      add(cyl(tubeR, tubeR, tubeLen, gun, 14), 0, 0.125, z, Math.PI / 2, 0, 0);
+      add(cyl(tubeR * 1.3, tubeR * 1.3, 0.05, gun, 14), 0, 0.125, z - tubeLen / 2, Math.PI / 2, 0, 0);
+      add(cyl(tubeR * 1.3, tubeR * 1.3, 0.05, gun, 14), 0, 0.125, z + tubeLen / 2, Math.PI / 2, 0, 0);
+      add(cyl(tubeR, tubeR, 0.006, lens, 14), 0, 0.125, z + tubeLen / 2 + 0.026, Math.PI / 2, 0, 0);
+      add(box(0.028, 0.05, 0.03, gun), 0, 0.088, z); // ring mount
+    };
+    const bipod = (z: number) => { for (const s of [-1, 1]) add(cyl(0.006, 0.006, 0.16, steel, 6), s * 0.05, -0.05, z, 0.5, 0, s * 0.4); };
     const id = this.def.id;
+    let fgZ = -0.42, kind: 'rifle' | 'pistol' | 'knife' = 'rifle';
 
-    if (this.def.melee) {
-      // Combat knife: handle + guard + blade.
-      add(box(0.03, 0.035, 0.14, poly), 0.0, -0.02, 0.02);
-      add(box(0.06, 0.012, 0.02, steel), 0.0, -0.02, -0.06);
-      const blade = box(0.008, 0.05, 0.28, steel); add(blade, 0.0, -0.01, -0.22, 0, 0, 0);
-      this.buildHands(add, box, cyl, glove, 'knife');
-      this.group.position.copy(this.basePos);
-      return;
+    switch (id) {
+      case 'knife': {
+        add(box(0.032, 0.04, 0.14, wood), 0, -0.02, 0.03);                 // handle
+        add(box(0.07, 0.014, 0.022, steel), 0, -0.02, -0.05);              // cross guard
+        const blade = add(box(0.01, 0.055, 0.3, steel), 0.0, -0.005, -0.23); // blade
+        (blade.geometry as THREE.BoxGeometry).translate(0, 0, 0);
+        add(box(0.003, 0.02, 0.28, gun), 0.004, -0.005, -0.23);            // fuller line
+        kind = 'knife'; break;
+      }
+      case 'pistol': {
+        add(box(0.05, 0.058, 0.26, gun), 0, 0.05, -0.12);                  // slide
+        add(box(0.052, 0.02, 0.05, gun), 0, 0.082, -0.02);                 // rear serrations block
+        add(box(0.044, 0.03, 0.22, poly), 0, 0.012, -0.1);                 // frame
+        add(box(0.044, 0.15, 0.06, poly), 0, -0.07, 0.05, 0.28, 0, 0);     // grip + mag
+        add(box(0.038, 0.02, 0.06, poly), 0, -0.02, -0.02);                // trigger guard
+        bar(0.012, 0.06, steel, -0.26);
+        add(box(0.008, 0.014, 0.01, gun), 0, 0.086, -0.24);               // front sight
+        add(box(0.032, 0.016, 0.012, gun), 0, 0.086, 0.0);                // rear sight
+        kind = 'pistol'; break;
+      }
+      case 'smg': {
+        add(box(0.056, 0.085, 0.3, poly), 0, 0.02, -0.08);                 // boxy receiver
+        add(box(0.05, 0.075, 0.06, poly), 0, -0.09, 0.02, 0.2, 0, 0);      // grip
+        add(box(0.042, 0.22, 0.05, poly), 0, -0.14, -0.16, -0.1, 0, 0);    // vertical mag forward
+        add(box(0.028, 0.11, 0.03, poly), 0, -0.075, -0.3);               // vertical foregrip
+        bar(0.012, 0.22, steel, -0.36);
+        add(cyl(0.02, 0.018, 0.05, steel, 10), 0, 0.045, -0.5, Math.PI / 2, 0, 0);
+        add(cyl(0.012, 0.012, 0.16, gun, 8), 0, 0.05, 0.16, Math.PI / 2, 0, 0); // collapsed stock rod
+        add(box(0.05, 0.06, 0.03, poly), 0, 0.03, 0.24);                   // stock plate
+        add(box(0.05, 0.05, 0.06, gun), 0, 0.1, -0.1);                    // compact red-dot
+        add(box(0.036, 0.036, 0.004, lens), 0, 0.108, -0.132);
+        fgZ = -0.3; break;
+      }
+      case 'rifle': { // AR-14 carbine
+        buildAR(); add(box(0.05, 0.05, 0.07, gun), 0, 0.105, -0.12);       // red-dot
+        add(box(0.038, 0.038, 0.004, lens), 0, 0.115, -0.155);
+        add(box(0.004, 0.004, 0.004, emberDot), 0, 0.115, -0.152);
+        add(box(0.01, 0.05, 0.01, gun), 0, 0.11, -0.5);                    // flip front sight
+        fgZ = -0.46; break;
+      }
+      case 'battle': { // BR-55 — long tan battle rifle, big mag, full stock
+        add(box(0.058, 0.075, 0.38, tan), 0, 0.03, -0.12);                 // receiver
+        add(box(0.05, 0.15, 0.06, tan), 0, -0.1, 0.06, 0.32, 0, 0);        // grip
+        add(box(0.058, 0.3, 0.11, tan), 0, -0.22, -0.06, -0.14, 0, 0);     // large angled mag
+        add(box(0.066, 0.08, 0.46, tan), 0, 0.028, -0.42);                 // long handguard
+        add(box(0.062, 0.12, 0.22, tan), 0, 0.02, 0.24);                   // full stock
+        add(box(0.066, 0.04, 0.05, poly), 0, -0.04, 0.35);                 // butt pad
+        bar(0.016, 0.5, steel, -0.66);
+        add(cyl(0.026, 0.022, 0.07, steel, 10), 0, 0.045, -0.92, Math.PI / 2, 0, 0);
+        scope(-0.16, 0.16, 0.026);                                         // short optic
+        fgZ = -0.52; break;
+      }
+      case 'dmr': { // DMR-7 — marksman, long barrel + medium scope, skeleton stock
+        add(box(0.05, 0.06, 0.36, gun), 0, 0.045, -0.12);
+        add(box(0.045, 0.14, 0.055, poly), 0, -0.09, 0.06, 0.32, 0, 0);    // grip
+        add(box(0.05, 0.24, 0.08, poly), 0, -0.18, -0.02, -0.12, 0, 0);    // mag
+        add(box(0.06, 0.07, 0.42, poly), 0, 0.028, -0.42);                 // handguard
+        // skeleton stock (two thin rails + pad)
+        add(box(0.012, 0.02, 0.22, gun), 0.02, 0.06, 0.22); add(box(0.012, 0.02, 0.22, gun), -0.02, -0.02, 0.22);
+        add(box(0.05, 0.11, 0.03, poly), 0, 0.02, 0.34);
+        bar(0.015, 0.56, steel, -0.7);
+        add(cyl(0.024, 0.02, 0.06, steel, 10), 0, 0.045, -0.98, Math.PI / 2, 0, 0);
+        scope(-0.15, 0.24, 0.028);
+        fgZ = -0.5; break;
+      }
+      case 'sniper': { // RAIL-X — huge scope, very long barrel, bolt, bipod
+        add(box(0.058, 0.07, 0.42, gun), 0, 0.045, -0.14);                 // heavy receiver
+        add(box(0.048, 0.14, 0.055, poly), 0, -0.09, 0.08, 0.3, 0, 0);     // grip
+        add(box(0.05, 0.2, 0.08, poly), 0, -0.16, 0.0, -0.08, 0, 0);       // mag
+        add(box(0.062, 0.13, 0.26, poly), 0, 0.02, 0.26);                  // cheek-riser stock
+        add(cyl(0.014, 0.011, 0.4, steel, 8), 0, 0.033, 0.0, Math.PI / 2, 0, 0); // chassis rail underside...
+        add(cyl(0.01, 0.01, 0.05, gun, 8), 0.055, 0.05, 0.06, 0, 0, Math.PI / 2); // bolt handle (right)
+        bar(0.017, 0.66, steel, -0.82);
+        add(cyl(0.032, 0.026, 0.09, steel, 12), 0, 0.045, -1.16, Math.PI / 2, 0, 0); // muzzle brake
+        bipod(-0.9);
+        scope(-0.12, 0.34, 0.036);                                         // large scope
+        add(cyl(0.05, 0.05, 0.05, gun, 14), 0, 0.125, 0.09, Math.PI / 2, 0, 0); // big objective bell rear
+        fgZ = -0.6; break;
+      }
+      case 'lmg': { // LMG-40 — box mag, heavy ribbed barrel, bipod, carry handle
+        add(box(0.06, 0.09, 0.42, olive), 0, 0.04, -0.12);                 // receiver
+        add(box(0.05, 0.14, 0.06, olive), 0, -0.1, 0.08, 0.3, 0, 0);       // grip
+        add(box(0.14, 0.17, 0.15, poly), 0, -0.17, -0.04);                 // ammo box
+        add(box(0.03, 0.06, 0.12, olive), 0, 0.11, -0.02);                 // top cover / carry handle base
+        add(box(0.11, 0.03, 0.03, gun), 0, 0.15, -0.02);                   // carry handle
+        add(box(0.062, 0.1, 0.2, olive), 0, 0.02, 0.24);                   // stock
+        const bbl = bar(0.02, 0.55, steel, -0.68);                          // heavy barrel
+        for (let i = 0; i < 6; i++) add(cyl(0.026, 0.026, 0.012, gun, 10), 0, 0.045, -0.5 - i * 0.07, Math.PI / 2, 0, 0); // cooling rings
+        add(cyl(0.03, 0.026, 0.07, steel, 10), 0, 0.045, -0.98, Math.PI / 2, 0, 0);
+        bipod(-0.82);
+        add(box(0.05, 0.05, 0.06, gun), 0, 0.115, -0.14); add(box(0.038, 0.038, 0.004, lens), 0, 0.125, -0.174); // optic
+        fgZ = -0.5; break;
+      }
+      case 'shotgun': { // BREACH-12 — pump, tube mag under barrel, wood furniture
+        add(box(0.056, 0.075, 0.26, gun), 0, 0.03, -0.05);                 // receiver
+        bar(0.02, 0.5, steel, -0.4, 0.075);                                // barrel (raised)
+        add(cyl(0.016, 0.016, 0.44, steel, 10), 0, 0.03, -0.34, Math.PI / 2, 0, 0); // tube mag UNDER barrel
+        add(box(0.052, 0.05, 0.11, wood), 0, 0.03, -0.3);                  // pump fore-end (wood)
+        add(box(0.056, 0.11, 0.22, wood), 0, 0.02, 0.2);                   // wood stock
+        add(box(0.05, 0.13, 0.05, wood), 0, -0.07, 0.08, 0.34, 0, 0);      // grip
+        add(box(0.014, 0.014, 0.014, emberDot), 0, 0.108, -0.62);          // bead front sight
+        fgZ = -0.3; break;
+      }
     }
 
-    // ---- common rifle/SMG core ----
-    const long = id === 'sniper' || id === 'dmr' || id === 'lmg';
-    const compact = id === 'smg' || id === 'pistol';
-    const barrelLen = id === 'pistol' ? 0.16 : long ? 0.5 : id === 'smg' ? 0.24 : 0.34;
-    const muzzleZ = -0.28 - barrelLen;
+    // Helper for the AR core (used by 'rifle').
+    function _noop() {}
+    _noop();
 
-    // lower receiver / frame
-    add(box(0.05, 0.09, 0.26, poly), 0, -0.01, -0.05);
-    // upper receiver
-    add(box(0.052, 0.06, 0.3, gun), 0, 0.045, -0.1);
-    // charging handle
-    add(box(0.022, 0.022, 0.05, gun), 0, 0.085, 0.02);
-    // ejection port cover (right side)
-    add(box(0.006, 0.03, 0.06, steel), 0.028, 0.05, -0.04);
-
-    if (id !== 'pistol') {
-      // stock + buffer tube
-      add(cyl(0.017, 0.017, 0.14, gun, 8), 0, 0.04, 0.1, Math.PI / 2, 0, 0);
-      add(box(0.05, 0.085, 0.16, poly), 0, 0.02, 0.2);
-      add(box(0.055, 0.03, 0.04, poly), 0, -0.01, 0.28); // butt pad
-      // pistol grip
-      add(box(0.045, 0.14, 0.06, poly), 0, -0.11, 0.05, 0.34, 0, 0);
-      // magazine (curved)
-      add(box(0.05, 0.24, 0.09, poly), 0, -0.17, -0.03, -0.12, 0, 0);
-      // handguard with rail
-      add(box(0.062, 0.07, barrelLen + 0.06, poly), 0, 0.03, -0.3 - barrelLen / 2);
-      // top picatinny rail ribs
-      const railZ0 = -0.02;
-      for (let i = 0; i < 9; i++) add(box(0.03, 0.008, 0.014, gun), 0, 0.088, railZ0 - i * 0.05);
-    } else {
-      // pistol: slide + grip + trigger guard
-      add(box(0.05, 0.06, 0.22, gun), 0, 0.045, -0.14);
-      add(box(0.045, 0.13, 0.055, poly), 0, -0.08, 0.04, 0.28, 0, 0);
-      add(box(0.05, 0.2, 0.09, poly), 0, -0.16, 0.02, -0.05, 0, 0); // magazine in grip line
-    }
-
-    // barrel + gas block + flash hider
-    add(cyl(0.014, 0.014, barrelLen, steel, 12), 0, 0.045, -0.28 - barrelLen / 2, Math.PI / 2, 0, 0);
-    if (id !== 'pistol') add(box(0.03, 0.05, 0.04, gun), 0, 0.07, -0.42);
-    add(cyl(0.022, 0.02, 0.05, steel, 10), 0, 0.045, muzzleZ, Math.PI / 2, 0, 0); // muzzle device
-
-    // sights / optic
-    if (id === 'sniper' || id === 'dmr') {
-      // scope: tube + bells + lens
-      add(cyl(0.03, 0.03, 0.24, gun, 14), 0, 0.12, -0.18, Math.PI / 2, 0, 0);
-      add(cyl(0.038, 0.038, 0.05, gun, 14), 0, 0.12, -0.06, Math.PI / 2, 0, 0);
-      add(cyl(0.038, 0.038, 0.05, gun, 14), 0, 0.12, -0.3, Math.PI / 2, 0, 0);
-      const l = cyl(0.03, 0.03, 0.006, lens, 14); add(l, 0, 0.12, -0.055, Math.PI / 2, 0, 0);
-      add(box(0.03, 0.05, 0.03, gun), 0, 0.085, -0.18); // mount
-    } else if (id === 'pistol') {
-      add(box(0.008, 0.015, 0.01, gun), 0, 0.085, -0.24); // front post
-      add(box(0.03, 0.015, 0.01, gun), 0, 0.085, 0.0);    // rear notch
-    } else {
-      // red-dot optic
-      add(box(0.05, 0.05, 0.07, gun), 0, 0.105, -0.12);
-      const l = box(0.038, 0.038, 0.004, lens); add(l, 0, 0.115, -0.155);
-      add(box(0.004, 0.004, 0.004, emberDot), 0, 0.115, -0.152);
-      // flip front sight
-      add(box(0.01, 0.05, 0.01, gun), 0, 0.11, -0.5);
-    }
-
-    // charging handle accent + lmg drum/box mag
-    if (id === 'lmg') add(box(0.11, 0.14, 0.12, poly), 0, -0.16, -0.02);
-
-    this.buildHands(add, box, cyl, glove, id === 'pistol' ? 'pistol' : 'rifle');
+    this.buildHands(add, box, cyl, glove, kind, fgZ);
     this.ejectPortLocal.set(0.05, 0.05, -0.04);
     this.group.position.copy(this.basePos);
+
+    // Local closure to build the AR-14 body (kept inline for the 'rifle' case).
+    function buildAR() {
+      add(box(0.05, 0.09, 0.26, poly), 0, -0.01, -0.05);
+      add(box(0.052, 0.06, 0.3, gun), 0, 0.045, -0.1);
+      add(box(0.022, 0.022, 0.05, gun), 0, 0.085, 0.02);
+      add(box(0.006, 0.03, 0.06, steel), 0.028, 0.05, -0.04);
+      add(cyl(0.017, 0.017, 0.14, gun, 8), 0, 0.04, 0.1, Math.PI / 2, 0, 0);
+      add(box(0.05, 0.085, 0.16, poly), 0, 0.02, 0.2);
+      add(box(0.055, 0.03, 0.04, poly), 0, -0.01, 0.28);
+      add(box(0.045, 0.14, 0.06, poly), 0, -0.11, 0.05, 0.34, 0, 0);
+      add(box(0.05, 0.24, 0.09, poly), 0, -0.17, -0.03, -0.12, 0, 0);
+      add(box(0.062, 0.07, 0.4, poly), 0, 0.03, -0.47);
+      for (let i = 0; i < 9; i++) add(box(0.03, 0.008, 0.014, gun), 0, 0.088, -0.02 - i * 0.05);
+      bar(0.014, 0.34, steel, -0.45);
+      add(box(0.03, 0.05, 0.04, gun), 0, 0.07, -0.42);
+      add(cyl(0.022, 0.02, 0.05, steel, 10), 0, 0.045, -0.62, Math.PI / 2, 0, 0);
+    }
   }
 
   /** Gloved forearms + fists gripping the weapon (added to the view group). */
@@ -226,22 +292,21 @@ export class WeaponController {
     add: (m: THREE.Mesh, x: number, y: number, z: number, rx?: number, ry?: number, rz?: number) => THREE.Mesh,
     box: (w: number, h: number, dp: number, m: THREE.Material) => THREE.Mesh,
     cyl: (rt: number, rb: number, len: number, m: THREE.Material, seg?: number) => THREE.Mesh,
-    glove: THREE.Material, kind: 'rifle' | 'pistol' | 'knife',
+    glove: THREE.Material, kind: 'rifle' | 'pistol' | 'knife', fgZ = -0.42,
   ) {
-    const gripZ = kind === 'pistol' ? 0.04 : 0.05;
+    const gripZ = kind === 'pistol' ? 0.04 : kind === 'knife' ? 0.02 : 0.05;
     // Right hand on the grip + forearm angling to the lower-right of the frame.
-    add(box(0.055, 0.06, 0.075, glove), 0.005, -0.14, gripZ);            // fist
-    for (let i = 0; i < 4; i++) add(box(0.015, 0.02, 0.055, glove), -0.02 + i * 0.013, -0.115, gripZ - 0.03, 0.5, 0, 0); // fingers
-    add(box(0.02, 0.045, 0.05, glove), 0.028, -0.13, gripZ + 0.01);      // thumb side
-    add(cyl(0.032, 0.04, 0.34, glove, 8), 0.075, -0.26, gripZ + 0.16, 1.15, 0, 0.35); // forearm
+    add(box(0.055, 0.06, 0.075, glove), 0.005, -0.14, gripZ);
+    for (let i = 0; i < 4; i++) add(box(0.015, 0.02, 0.055, glove), -0.02 + i * 0.013, -0.115, gripZ - 0.03, 0.5, 0, 0);
+    add(box(0.02, 0.045, 0.05, glove), 0.028, -0.13, gripZ + 0.01);
+    add(cyl(0.032, 0.04, 0.34, glove, 8), 0.075, -0.26, gripZ + 0.16, 1.15, 0, 0.35);
 
-    if (kind !== 'pistol') {
-      // Left hand on the handguard + forearm to the lower-left.
-      const fgZ = -0.42;
-      add(box(0.06, 0.06, 0.09, glove), 0, -0.11, fgZ);                  // fist
-      for (let i = 0; i < 4; i++) add(box(0.016, 0.05, 0.02, glove), -0.03 + i * 0.02, -0.075, fgZ, -0.3, 0, 0); // fingers over top
-      add(box(0.022, 0.05, 0.05, glove), -0.04, -0.1, fgZ + 0.02);       // thumb
-      add(cyl(0.032, 0.042, 0.36, glove, 8), -0.11, -0.24, fgZ - 0.14, 1.1, 0, -0.5); // forearm
+    if (kind === 'rifle') {
+      // Left hand on the fore-end at the weapon-specific position.
+      add(box(0.06, 0.06, 0.09, glove), 0, -0.11, fgZ);
+      for (let i = 0; i < 4; i++) add(box(0.016, 0.05, 0.02, glove), -0.03 + i * 0.02, -0.075, fgZ, -0.3, 0, 0);
+      add(box(0.022, 0.05, 0.05, glove), -0.04, -0.1, fgZ + 0.02);
+      add(cyl(0.032, 0.042, 0.36, glove, 8), -0.11, -0.24, fgZ - 0.14, 1.1, 0, -0.5);
     }
   }
 
