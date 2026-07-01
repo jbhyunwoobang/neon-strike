@@ -14,6 +14,7 @@
  */
 
 import * as THREE from 'three';
+import { Reflector } from 'three/examples/jsm/objects/Reflector.js';
 import type { Engine } from './Engine';
 
 export type SurfaceMat = 'concrete' | 'metal' | 'glass';
@@ -34,7 +35,7 @@ function mulberry32(seed: number) {
   };
 }
 
-export const ARENA_HALF = 96;
+export const ARENA_HALF = 112;
 
 /* ----------------------- procedural surface textures ---------------------- *
  * Canvas-generated so the game ships zero image assets. These give concrete
@@ -128,6 +129,8 @@ export class Arena {
   private groundMesh!: THREE.Mesh;
   private aggregateTex: THREE.Texture;
   private floorTex: THREE.Texture;
+  private waterfallTex: THREE.Texture | null = null;
+  private reflectors: Reflector[] = [];
 
   constructor(engine: Engine, seed: number) {
     this.scene = engine.scene;
@@ -162,6 +165,9 @@ export class Arena {
     this.buildGlowStrips(rng);
     this.buildOculus();
     this.buildSignage(rng);
+    this.buildExterior(rng, engine.shadowsEnabled);
+    this.buildWater();
+    this.buildWaterfall();
     this.buildRain();
 
     // Scatter PvP spawn points around the ring.
@@ -219,22 +225,31 @@ export class Arena {
   }
 
   private buildPerimeter(shadow: boolean) {
-    const H = 22, T = 2;
-    const spans: [number, number, number, number][] = [
-      [ARENA_HALF * 2, T, 0, -ARENA_HALF],
-      [ARENA_HALF * 2, T, 0, ARENA_HALF],
-      [T, ARENA_HALF * 2, -ARENA_HALF, 0],
-      [T, ARENA_HALF * 2, ARENA_HALF, 0],
+    // Open colonnade instead of a solid wall: a low parapet + a row of tall
+    // columns carrying a lintel, so you see straight out to the landscape.
+    const P = ARENA_HALF, T = 1.4, parH = 2.6, colH = 20;
+    const spans: { w: number; d: number; x: number; z: number; horiz: boolean }[] = [
+      { w: P * 2, d: T, x: 0, z: -P, horiz: true },
+      { w: P * 2, d: T, x: 0, z: P, horiz: true },
+      { w: T, d: P * 2, x: -P, z: 0, horiz: false },
+      { w: T, d: P * 2, x: P, z: 0, horiz: false },
     ];
-    for (const [w, d, x, z] of spans) {
-      this.addBox(w, H, d, x, H / 2, z, 'concrete', { shadow });
-      // Neon top trim for bloom + boundary legibility.
-      const trim = new THREE.Mesh(
-        new THREE.BoxGeometry(w, 0.4, d),
-        this.neonMats[0],
-      );
-      trim.position.set(x, H, z);
-      this.scene.add(trim);
+    for (const s of spans) {
+      // low parapet (collides; the hard boundary clamp backs it up)
+      this.addBox(s.w, parH, s.d, s.x, parH / 2, s.z, 'concrete', { shadow });
+      const trim = new THREE.Mesh(new THREE.BoxGeometry(s.w, 0.35, s.d), this.neonMats[0]);
+      trim.position.set(s.x, parH, s.z); this.scene.add(trim);
+      // colonnade + lintel
+      const lintel = new THREE.Mesh(new THREE.BoxGeometry(s.horiz ? P * 2 : 2.2, 2, s.horiz ? 2.2 : P * 2), this.materials.concrete);
+      lintel.position.set(s.x, colH, s.z); lintel.castShadow = shadow; lintel.receiveShadow = true; this.scene.add(lintel);
+      const n = 14;
+      for (let i = 0; i <= n; i++) {
+        const t = -P + (i / n) * P * 2;
+        const cx = s.horiz ? t : s.x, cz = s.horiz ? s.z : t;
+        const col = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.3, colH, 10), this.materials.concrete);
+        col.position.set(cx, colH / 2, cz); col.castShadow = shadow; col.receiveShadow = true;
+        this.scene.add(col);
+      }
     }
   }
 
@@ -524,12 +539,13 @@ export class Arena {
   private keyRef?: THREE.DirectionalLight;
 
   private buildLighting(engine: Engine) {
-    // Cool sky bounce lifting the concrete so architecture + floor detail read.
-    const ambient = new THREE.HemisphereLight(0x4a525e, 0x1a150f, 0.8);
+    // Bright overcast sky bounce (green ground tint below) so the outdoor world
+    // and interior both read clearly.
+    const ambient = new THREE.HemisphereLight(0x9fb0c2, 0x36402c, 1.2);
     this.scene.add(ambient);
     this.ambientRef = ambient;
 
-    const key = new THREE.DirectionalLight(0xc2ccd8, 1.05);
+    const key = new THREE.DirectionalLight(0xd6dde8, 1.5);
     key.position.set(60, 90, 30);
     key.castShadow = engine.shadowsEnabled;
     if (engine.shadowsEnabled && engine.shadowMapSize) {
@@ -636,6 +652,111 @@ export class Arena {
     });
   }
 
+  /** The world beyond the colonnade: vast ground, hills, distant megastructures,
+   *  a dam, and trees — the open landscape from the reference boards. */
+  private buildExterior(rng: () => number, shadow: boolean) {
+    // Vast outer ground fading into the fog.
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(1800, 1800),
+      new THREE.MeshStandardMaterial({ color: 0x2c3626, roughness: 1, metalness: 0 }),
+    );
+    ground.rotation.x = -Math.PI / 2; ground.position.y = -0.6; ground.receiveShadow = true; this.scene.add(ground);
+
+    // Rolling hills (low mossy mounds).
+    const hillMat = new THREE.MeshStandardMaterial({ color: 0x38492a, roughness: 1, flatShading: true });
+    for (let i = 0; i < 16; i++) {
+      const a = rng() * Math.PI * 2, r = 150 + rng() * 240, s = 40 + rng() * 90;
+      const hill = new THREE.Mesh(new THREE.SphereGeometry(s, 8, 6), hillMat);
+      hill.position.set(Math.cos(a) * r, -s * 0.72, Math.sin(a) * r);
+      hill.scale.y = 0.34 + rng() * 0.3; this.scene.add(hill);
+    }
+
+    // Distant megastructures (dark slabs + towers fading into fog).
+    const megaMat = new THREE.MeshStandardMaterial({ color: 0x2a2f37, roughness: 0.9, metalness: 0.25 });
+    for (let i = 0; i < 12; i++) {
+      const a = rng() * Math.PI * 2, r = 220 + rng() * 240;
+      const w = 20 + rng() * 46, h = 70 + rng() * 150, d = 20 + rng() * 46;
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), megaMat);
+      m.position.set(Math.cos(a) * r, h / 2 - 6, Math.sin(a) * r); m.rotation.y = rng(); this.scene.add(m);
+      if (rng() < 0.55) {
+        const crown = new THREE.Mesh(new THREE.BoxGeometry(w * 1.02, 1.6, d * 1.02), this.neonMats[0]);
+        crown.position.set(m.position.x, h - 8, m.position.z); this.scene.add(crown);
+      }
+    }
+    // A colossal dam wall spanning the valley (reference 3).
+    const da = rng() * Math.PI * 2;
+    const dam = new THREE.Mesh(new THREE.BoxGeometry(420, 96, 26), megaMat);
+    dam.position.set(Math.cos(da) * 340, 42, Math.sin(da) * 340); dam.rotation.y = da; this.scene.add(dam);
+
+    // Trees (stylised trunk + foliage) — a few inside, many out on the hills.
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x241a10, roughness: 1 });
+    const leafMat = new THREE.MeshStandardMaterial({ color: 0x32471d, roughness: 1, flatShading: true });
+    for (let i = 0; i < 46; i++) {
+      const inside = i < 7;
+      const a = rng() * Math.PI * 2;
+      const r = inside ? 30 + rng() * 55 : 130 + rng() * 150;
+      const x = Math.cos(a) * r, z = Math.sin(a) * r, th = 4 + rng() * 8;
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.5, th, 6), trunkMat);
+      trunk.position.set(x, th / 2, z); trunk.castShadow = shadow; this.scene.add(trunk);
+      const foliage = new THREE.Mesh(new THREE.ConeGeometry(2 + rng() * 2.2, 5 + rng() * 4, 7), leafMat);
+      foliage.position.set(x, th + 2.6, z); foliage.castShadow = shadow; this.scene.add(foliage);
+    }
+  }
+
+  /** Reflective water: a real planar mirror pool inside + a cheap glossy lake out. */
+  private buildWater() {
+    // Inner reflective pool (Reflector — genuine reflections of the architecture).
+    const pool = new Reflector(new THREE.PlaneGeometry(34, 22), {
+      textureWidth: 512, textureHeight: 512, color: 0x33454c,   // 512px keeps the extra pass cheap
+    });
+    pool.rotation.x = -Math.PI / 2; pool.position.set(-52, 0.06, 6);
+    this.scene.add(pool); this.reflectors.push(pool);
+    // A thin water-tint sheet over it for colour + subtle ripple look.
+    const tint = new THREE.Mesh(new THREE.PlaneGeometry(34, 22),
+      new THREE.MeshStandardMaterial({ color: 0x24343a, transparent: true, opacity: 0.4, roughness: 0.1, metalness: 0.6 }));
+    tint.rotation.x = -Math.PI / 2; tint.position.set(-52, 0.08, 6); this.scene.add(tint);
+
+    // Outer lake/moat — cheap glossy plane (no reflector cost).
+    const lake = new THREE.Mesh(new THREE.PlaneGeometry(1600, 1600),
+      new THREE.MeshStandardMaterial({ color: 0x141e22, roughness: 0.08, metalness: 0.85 }));
+    lake.rotation.x = -Math.PI / 2; lake.position.y = -0.35; this.scene.add(lake);
+  }
+
+  /** An animated waterfall cascading inside near the west colonnade + splash pool. */
+  private buildWaterfall() {
+    // Vertical streak texture that scrolls downward.
+    const c = document.createElement('canvas'); c.width = 64; c.height = 256;
+    const g = c.getContext('2d')!;
+    g.clearRect(0, 0, 64, 256);
+    for (let i = 0; i < 40; i++) {
+      const x = Math.random() * 64, w = 1 + Math.random() * 3;
+      g.fillStyle = `rgba(200,224,232,${0.15 + Math.random() * 0.4})`;
+      g.fillRect(x, 0, w, 256);
+    }
+    const tex = new THREE.CanvasTexture(c);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(2, 3);
+    this.waterfallTex = tex;
+
+    const fallMat = new THREE.MeshBasicMaterial({ map: tex, color: 0x9fc0cc, transparent: true, opacity: 0.42, side: THREE.DoubleSide, depthWrite: false });
+    const fall = new THREE.Mesh(new THREE.PlaneGeometry(8, 24), fallMat);
+    fall.position.set(-70, 12, 40); fall.rotation.y = Math.PI / 2;
+    this.scene.add(fall);
+
+    // Ledge it pours from + splash pool + mist.
+    this.addBox(6, 2, 10, -70, 24, 40, 'concrete', { shadow: true, collide: false });
+    const splash = new THREE.Mesh(new THREE.CircleGeometry(6, 20),
+      new THREE.MeshStandardMaterial({ color: 0x2a3c40, roughness: 0.1, metalness: 0.7 }));
+    splash.rotation.x = -Math.PI / 2; splash.position.set(-70, 0.09, 40); this.scene.add(splash);
+
+    const mistCount = 40;
+    const mp = new Float32Array(mistCount * 3);
+    for (let i = 0; i < mistCount; i++) { mp[i * 3] = -70 + (Math.random() - 0.5) * 8; mp[i * 3 + 1] = Math.random() * 3; mp[i * 3 + 2] = 40 + (Math.random() - 0.5) * 8; }
+    const mistGeo = new THREE.BufferGeometry();
+    mistGeo.setAttribute('position', new THREE.BufferAttribute(mp, 3));
+    const mist = new THREE.Points(mistGeo, new THREE.PointsMaterial({ color: 0xcfe0e6, size: 1.6, transparent: true, opacity: 0.35, depthWrite: false }));
+    this.scene.add(mist);
+  }
+
   private buildRain() {
     const count = 4000;
     const geo = new THREE.BufferGeometry();
@@ -656,12 +777,15 @@ export class Arena {
   /* -------------------------------- update ------------------------------- */
 
   update(dt: number, elapsed: number, camPos: THREE.Vector3) {
-    // Day→night cycle over ~5 minutes: swing exposure + sky tint + key colour.
+    // Scroll the waterfall.
+    if (this.waterfallTex) this.waterfallTex.offset.y -= dt * 0.9;
+
+    // Overcast-dusk cycle — kept bright enough to read the outdoor landscape.
     const cycle = (Math.sin(elapsed * 0.0035) + 1) / 2; // 0 night .. 1 dusk
-    if (this.ambient) this.ambient.intensity = 0.72 + cycle * 0.34;
+    if (this.ambient) this.ambient.intensity = 1.05 + cycle * 0.35;
     if (this.keyLight) {
-      this.keyLight.intensity = 0.62 + cycle * 0.6;
-      this.keyLight.color.setHSL(0.6 - cycle * 0.06, 0.35, 0.55 + cycle * 0.08);
+      this.keyLight.intensity = 1.1 + cycle * 0.6;
+      this.keyLight.color.setHSL(0.6 - cycle * 0.06, 0.3, 0.62 + cycle * 0.08);
       // Keep the shadow frustum centred on the player.
       this.keyLight.target.position.set(camPos.x, 0, camPos.z);
       this.keyLight.position.set(camPos.x + 60, 90, camPos.z + 30);

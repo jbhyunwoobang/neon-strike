@@ -48,6 +48,7 @@ export class Player {
   walkSpeed = 5.0;
   sprintSpeed = 8.2;
   crouchSpeed = 2.6;
+  boundary = 109;             // hard play-area limit (just inside the colonnade)
 
   onFootstep?: (metal: boolean) => void;
   private groundMat: 'concrete' | 'metal' = 'concrete';
@@ -137,6 +138,13 @@ export class Player {
     this.moveAxis('x', this.vel.x * dt);
     this.moveAxis('z', this.vel.z * dt);
     this.moveVertical(this.vel.y * dt);
+
+    // Hard play boundary (lets the perimeter be an open colonnade, not a wall).
+    const B = this.boundary;
+    if (this.pos.x < -B) { this.pos.x = -B; this.vel.x = 0; }
+    if (this.pos.x > B) { this.pos.x = B; this.vel.x = 0; }
+    if (this.pos.z < -B) { this.pos.z = -B; this.vel.z = 0; }
+    if (this.pos.z > B) { this.pos.z = B; this.vel.z = 0; }
 
     // Lean (Q/E) — camera roll.
     let leanTarget = 0;

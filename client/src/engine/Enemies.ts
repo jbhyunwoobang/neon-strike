@@ -267,8 +267,8 @@ export class EnemyManager {
       if (d.flying) gp.y = 4 + Math.sin(elapsed * 2 + e.id) * 0.6;
 
       // Keep inside the arena and off the exact player position.
-      gp.x = THREE.MathUtils.clamp(gp.x, -95, 95);
-      gp.z = THREE.MathUtils.clamp(gp.z, -95, 95);
+      gp.x = THREE.MathUtils.clamp(gp.x, -106, 106);
+      gp.z = THREE.MathUtils.clamp(gp.z, -106, 106);
 
       // Hurt flash decay.
       if (e.hurtT > 0) { e.hurtT -= dt; e.mat.emissiveIntensity = 1.7; }

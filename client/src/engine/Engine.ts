@@ -65,13 +65,12 @@ export class Engine {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     // Filmic tone mapping + natural exposure for a photographic look.
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.12;
+    this.renderer.toneMappingExposure = 1.25;
 
     this.scene = new THREE.Scene();
-    // Concrete void with a warm, dusty haze (per art direction) — lifted a
-    // touch so architectural detail reads without losing the mood.
-    this.scene.background = new THREE.Color(0x0b0a0c);
-    this.scene.fog = new THREE.FogExp2(0x161217, this.preset.fogDensity);
+    // Overcast dusk sky + distance haze that the far megastructures fade into.
+    this.scene.background = new THREE.Color(0x6b7482);
+    this.scene.fog = new THREE.FogExp2(0x707a86, this.preset.fogDensity * 0.7);
 
     this.camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 0.05, 800);
     // The camera must live in the scene graph so camera-parented objects (the
