@@ -27,10 +27,10 @@ interface QualityPreset {
 }
 
 const PRESETS: Record<Quality, QualityPreset> = {
-  low:    { pixelRatio: 1.0, shadowMap: 0,    bloom: false, shadows: false, fogDensity: 0.012 },
-  medium: { pixelRatio: 1.0, shadowMap: 1024, bloom: true,  shadows: true,  fogDensity: 0.010 },
-  high:   { pixelRatio: 1.5, shadowMap: 2048, bloom: true,  shadows: true,  fogDensity: 0.009 },
-  ultra:  { pixelRatio: 2.0, shadowMap: 4096, bloom: true,  shadows: true,  fogDensity: 0.008 },
+  low:    { pixelRatio: 1.0, shadowMap: 0,    bloom: false, shadows: false, fogDensity: 0.0075 },
+  medium: { pixelRatio: 1.0, shadowMap: 1024, bloom: true,  shadows: true,  fogDensity: 0.0062 },
+  high:   { pixelRatio: 1.5, shadowMap: 2048, bloom: true,  shadows: true,  fogDensity: 0.0052 },
+  ultra:  { pixelRatio: 2.0, shadowMap: 4096, bloom: true,  shadows: true,  fogDensity: 0.0044 },
 };
 
 export class Engine {
@@ -65,12 +65,13 @@ export class Engine {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     // Filmic tone mapping + natural exposure for a photographic look.
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 0.98;
+    this.renderer.toneMappingExposure = 1.12;
 
     this.scene = new THREE.Scene();
-    // Near-black concrete void with a warm, dusty haze (per art direction).
-    this.scene.background = new THREE.Color(0x070607);
-    this.scene.fog = new THREE.FogExp2(0x0c0908, this.preset.fogDensity);
+    // Concrete void with a warm, dusty haze (per art direction) — lifted a
+    // touch so architectural detail reads without losing the mood.
+    this.scene.background = new THREE.Color(0x0b0a0c);
+    this.scene.fog = new THREE.FogExp2(0x161217, this.preset.fogDensity);
 
     this.camera = new THREE.PerspectiveCamera(fov, window.innerWidth / window.innerHeight, 0.05, 800);
 

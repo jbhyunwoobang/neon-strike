@@ -36,6 +36,81 @@ function mulberry32(seed: number) {
 
 export const ARENA_HALF = 96;
 
+/* ----------------------- procedural surface textures ---------------------- *
+ * Canvas-generated so the game ships zero image assets. These give concrete
+ * its exposed-aggregate speckle and the floor its scuffs, scratches, stains
+ * and expansion joints — the fine detail the reference boards call for.
+ * ------------------------------------------------------------------------- */
+
+function canvas2d(size: number): { c: HTMLCanvasElement; g: CanvasRenderingContext2D } {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  return { c, g: c.getContext('2d')! };
+}
+
+function makeAggregateTexture(): THREE.Texture {
+  const { c, g } = canvas2d(512);
+  g.fillStyle = '#8d887e'; g.fillRect(0, 0, 512, 512);
+  // broad tonal mottle (form-work stains)
+  for (let i = 0; i < 46; i++) {
+    const x = Math.random() * 512, y = Math.random() * 512, r = 40 + Math.random() * 90;
+    const grd = g.createRadialGradient(x, y, 0, x, y, r);
+    const dark = Math.random() > 0.5;
+    grd.addColorStop(0, dark ? 'rgba(96,90,82,0.28)' : 'rgba(168,162,150,0.22)');
+    grd.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grd; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+  }
+  // aggregate specks
+  for (let i = 0; i < 13000; i++) {
+    const x = Math.random() * 512, y = Math.random() * 512, r = Math.random() * 1.7;
+    const light = Math.random() > 0.42;
+    const v = light ? 168 + Math.random() * 74 : 44 + Math.random() * 42;
+    g.fillStyle = `rgba(${v | 0},${(v * 0.95) | 0},${(v * 0.87) | 0},${0.12 + Math.random() * 0.3})`;
+    g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(2, 3); t.anisotropy = 4;
+  return t;
+}
+
+function makeFloorTexture(): THREE.Texture {
+  const { c, g } = canvas2d(1024);
+  g.fillStyle = '#2c251d'; g.fillRect(0, 0, 1024, 1024);
+  // tonal mottle
+  for (let i = 0; i < 70; i++) {
+    const x = Math.random() * 1024, y = Math.random() * 1024, r = 30 + Math.random() * 130;
+    const grd = g.createRadialGradient(x, y, 0, x, y, r);
+    grd.addColorStop(0, Math.random() > 0.5 ? 'rgba(46,40,34,0.4)' : 'rgba(12,10,9,0.5)');
+    grd.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grd; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+  }
+  // oil / water stains
+  for (let i = 0; i < 26; i++) {
+    const x = Math.random() * 1024, y = Math.random() * 1024, r = 18 + Math.random() * 90;
+    const grd = g.createRadialGradient(x, y, 0, x, y, r);
+    grd.addColorStop(0, 'rgba(0,0,0,0.4)'); grd.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = grd; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+  }
+  // fine scuffs + scratches
+  g.lineCap = 'round';
+  for (let i = 0; i < 520; i++) {
+    const x = Math.random() * 1024, y = Math.random() * 1024, a = Math.random() * Math.PI, len = 6 + Math.random() * 80;
+    const v = 130 + (Math.random() * 70) | 0;
+    g.strokeStyle = `rgba(${v},${v - 8},${v - 18},${0.03 + Math.random() * 0.12})`;
+    g.lineWidth = Math.random() * 1.3;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len); g.stroke();
+  }
+  // expansion joints
+  g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = 2.5;
+  for (let i = 0; i <= 4; i++) {
+    const p = i * 256;
+    g.beginPath(); g.moveTo(p, 0); g.lineTo(p, 1024); g.moveTo(0, p); g.lineTo(1024, p); g.stroke();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(6, 6); t.anisotropy = 8;
+  return t;
+}
+
 export class Arena {
   readonly colliders: Collider[] = [];
   readonly spawnPoints: THREE.Vector3[] = [];
@@ -51,14 +126,18 @@ export class Arena {
   private glassMat: THREE.MeshPhysicalMaterial;
   private neonMats: THREE.MeshBasicMaterial[];
   private groundMesh!: THREE.Mesh;
+  private aggregateTex: THREE.Texture;
+  private floorTex: THREE.Texture;
 
   constructor(engine: Engine, seed: number) {
     this.scene = engine.scene;
     const rng = mulberry32(seed || 1);
 
-    /* ---- shared PBR materials — warm raw concrete, gunmetal, dark glass ---- */
+    /* ---- procedural textures + shared PBR materials ---- */
+    this.aggregateTex = makeAggregateTexture();
+    this.floorTex = makeFloorTexture();
     this.materials = {
-      concrete: new THREE.MeshStandardMaterial({ color: 0x8a857b, roughness: 0.96, metalness: 0.04 }),
+      concrete: new THREE.MeshStandardMaterial({ color: 0x9a948a, roughness: 0.94, metalness: 0.05, map: this.aggregateTex }),
       metal: new THREE.MeshStandardMaterial({ color: 0x565049, roughness: 0.5, metalness: 0.8 }),
       glass: new THREE.MeshStandardMaterial({ color: 0x1a2220, roughness: 0.18, metalness: 0.2, transparent: true, opacity: 0.55 }),
     };
@@ -76,6 +155,10 @@ export class Arena {
     this.buildSkyBridges(rng);
     this.buildPillars(rng, engine.shadowsEnabled);
     this.buildLighting(engine);
+    this.buildCofferedCeiling(engine.shadowsEnabled);
+    this.buildStaircases(rng);
+    this.buildDebris(rng);
+    this.buildRooms(rng);
     this.buildGlowStrips(rng);
     this.buildOculus();
     this.buildSignage(rng);
@@ -117,8 +200,9 @@ export class Arena {
 
   private buildGround() {
     const geo = new THREE.PlaneGeometry(ARENA_HALF * 2 + 40, ARENA_HALF * 2 + 40);
-    // Wet polished concrete — dark, slightly metallic so ember light streaks across it.
-    const mat = new THREE.MeshStandardMaterial({ color: 0x0e0c0b, roughness: 0.42, metalness: 0.35 });
+    // Wet polished concrete — scuffed + scratched, slightly metallic so ember
+    // light streaks across it and the light-pool reflects.
+    const mat = new THREE.MeshStandardMaterial({ color: 0xccc6ba, map: this.floorTex, roughness: 0.6, metalness: 0.14 });
     this.groundMesh = new THREE.Mesh(geo, mat);
     this.groundMesh.rotation.x = -Math.PI / 2;
     this.groundMesh.receiveShadow = true;
@@ -264,22 +348,185 @@ export class Arena {
     inst.instanceMatrix.needsUpdate = true;
     inst.castShadow = shadow; inst.receiveShadow = true;
     this.scene.add(inst);
+    // (The coffered ceiling these pillars carry is built separately.)
 
-    // The atrium roof slab those pillars carry.
-    this.addBox(60, 1.5, 60, 0, 20.5, 0, 'concrete', { shadow, collide: false });
+    // A monumental central pillar — the atrium's structural hero.
+    const core = new THREE.Mesh(new THREE.BoxGeometry(5, 21, 5), this.materials.concrete);
+    core.position.set(0, 10.5, 0); core.castShadow = shadow; core.receiveShadow = true;
+    this.scene.add(core); this.raycastTargets.push(core);
+    this.colliders.push({ box: new THREE.Box3().setFromObject(core), material: 'concrete' });
+    // recessed detailing panels on the pillar faces
+    const panelMat = new THREE.MeshStandardMaterial({ color: 0x6d685f, roughness: 0.9, metalness: 0.06, map: this.aggregateTex });
+    for (let f = 0; f < 4; f++) {
+      const p = new THREE.Mesh(new THREE.BoxGeometry(3.4, 16, 0.3), panelMat);
+      const ang = (f / 4) * Math.PI * 2;
+      p.position.set(Math.sin(ang) * 2.55, 11, Math.cos(ang) * 2.55);
+      p.rotation.y = ang; this.scene.add(p);
+    }
+  }
+
+  /* Coffered ceiling with a central square light-well (reference boards). */
+  private buildCofferedCeiling(shadow: boolean) {
+    const y = 22, half = 34, hole = 11; // hole = half-width of the central opening
+    const mat = this.materials.concrete;
+    // Top slab as a frame of four beams around the central light-well.
+    const frame: [number, number, number, number][] = [
+      [half * 2, half - hole, 0, (hole + half) / 2],
+      [half * 2, half - hole, 0, -(hole + half) / 2],
+      [half - hole, hole * 2, (hole + half) / 2, 0],
+      [half - hole, hole * 2, -(hole + half) / 2, 0],
+    ];
+    for (const [w, d, x, z] of frame) {
+      const s = new THREE.Mesh(new THREE.BoxGeometry(w, 1.6, d), mat);
+      s.position.set(x, y + 0.8, z); s.castShadow = shadow; s.receiveShadow = true; this.scene.add(s);
+    }
+    // Waffle beams under the frame (skip the light-well) → coffers.
+    const n = 8, cell = (half * 2) / n, beamH = 2.6;
+    for (let i = 0; i <= n; i++) {
+      const p = -half + i * cell;
+      // X-spanning beam at z=p, split around the hole
+      if (Math.abs(p) >= hole) {
+        const bx = new THREE.Mesh(new THREE.BoxGeometry(half * 2, beamH, 0.9), mat);
+        bx.position.set(0, y - beamH / 2, p); bx.castShadow = shadow; bx.receiveShadow = true; this.scene.add(bx);
+        const bz = new THREE.Mesh(new THREE.BoxGeometry(0.9, beamH, half * 2), mat);
+        bz.position.set(p, y - beamH / 2, 0); bz.castShadow = shadow; bz.receiveShadow = true; this.scene.add(bz);
+      } else {
+        // near the hole, only the outer segments
+        for (const seg of [1, -1]) {
+          const len = half - hole;
+          const bx = new THREE.Mesh(new THREE.BoxGeometry(len, beamH, 0.9), mat);
+          bx.position.set(seg * (hole + len / 2), y - beamH / 2, p); bx.castShadow = shadow; this.scene.add(bx);
+          const bz = new THREE.Mesh(new THREE.BoxGeometry(0.9, beamH, len), mat);
+          bz.position.set(p, y - beamH / 2, seg * (hole + len / 2)); bz.castShadow = shadow; this.scene.add(bz);
+        }
+      }
+    }
+
+    // Recessed warm downlights in a ring of coffers — lifts the atrium and adds
+    // the ceiling-light detail from the reference interiors.
+    const lamps: [number, number][] = [
+      [-22, -22], [22, -22], [-22, 22], [22, 22],
+      [0, -26], [0, 26], [-26, 0], [26, 0],
+    ];
+    lamps.forEach(([lx, lz], i) => {
+      // Every lamp gets an emissive disc (free glow via bloom); only a few carry
+      // an actual dynamic light, to keep the light count cheap.
+      const bulb = new THREE.Mesh(new THREE.CircleGeometry(0.9, 16), new THREE.MeshBasicMaterial({ color: 0xffdca6 }));
+      bulb.rotation.x = Math.PI / 2; bulb.position.set(lx, y - beamH - 0.15, lz); this.scene.add(bulb);
+      if (i % 2 === 0) {
+        const pl = new THREE.PointLight(0xffdca6, 3.6, 46, 2); pl.position.set(lx, y - beamH - 0.6, lz); this.scene.add(pl);
+      }
+    });
+  }
+
+  /* Monumental staircases — vertical play + brutalist mass. Each step is a
+   * collider so the auto step-up lets you climb them. */
+  private buildStaircases(rng: () => number) {
+    const makeStair = (x: number, z: number, ry: number, steps: number, w: number) => {
+      const cos = Math.cos(ry), sin = Math.sin(ry);
+      for (let i = 0; i < steps; i++) {
+        const s = new THREE.Mesh(new THREE.BoxGeometry(w, 0.4, 1.1), this.materials.concrete);
+        const lz = -i * 1.0;
+        s.position.set(x + sin * lz, 0.2 + i * 0.4, z + cos * lz);
+        s.rotation.y = ry; s.castShadow = true; s.receiveShadow = true;
+        this.scene.add(s);
+        this.colliders.push({ box: new THREE.Box3().setFromObject(s), material: 'concrete' });
+      }
+    };
+    makeStair(-36, 34, 0.5, 11, 9);
+    makeStair(40, -30, -1.1, 13, 11);
+    makeStair(24, 44, Math.PI, 8, 7);
+  }
+
+  /* Scattered rubble + faceted rocks (instanced) for ground detail. */
+  private buildDebris(rng: () => number) {
+    const rockGeo = new THREE.IcosahedronGeometry(0.6, 0);
+    const rockMat = new THREE.MeshStandardMaterial({ color: 0x413c35, roughness: 0.96, metalness: 0.04, map: this.aggregateTex, flatShading: true });
+    const N = 70;
+    const inst = new THREE.InstancedMesh(rockGeo, rockMat, N);
+    const d = new THREE.Object3D();
+    for (let i = 0; i < N; i++) {
+      const a = rng() * Math.PI * 2, r = 8 + rng() * 82;
+      d.position.set(Math.cos(a) * r, 0.15 + rng() * 0.25, Math.sin(a) * r);
+      d.rotation.set(rng() * 3, rng() * 3, rng() * 3);
+      const s = 0.28 + rng() * 1.1;
+      d.scale.set(s, s * (0.5 + rng() * 0.6), s);
+      d.updateMatrix(); inst.setMatrixAt(i, d.matrix);
+    }
+    inst.instanceMatrix.needsUpdate = true; inst.castShadow = true; inst.receiveShadow = true;
+    this.scene.add(inst);
+
+    // Broken concrete chunks near walls/cover.
+    for (let i = 0; i < 26; i++) {
+      const a = rng() * Math.PI * 2, r = 18 + rng() * 72;
+      const chunk = new THREE.Mesh(
+        new THREE.BoxGeometry(0.4 + rng() * 0.9, 0.3 + rng() * 0.5, 0.4 + rng() * 0.9),
+        this.materials.concrete,
+      );
+      chunk.position.set(Math.cos(a) * r, 0.2, Math.sin(a) * r);
+      chunk.rotation.set(rng() * 0.4, rng() * 3, rng() * 0.4);
+      chunk.castShadow = true; chunk.receiveShadow = true; this.scene.add(chunk);
+    }
+  }
+
+  /* Furnished interior zones (carpet + furniture) + partial room enclosures. */
+  private buildRooms(rng: () => number) {
+    // A red-carpet lobby zone (the warm reference interiors).
+    const carpet = new THREE.Mesh(
+      new THREE.PlaneGeometry(18, 13),
+      new THREE.MeshStandardMaterial({ color: 0x6e211a, roughness: 0.95, metalness: 0.0 }),
+    );
+    carpet.rotation.x = -Math.PI / 2; carpet.position.set(-42, 0.04, -32); carpet.receiveShadow = true;
+    this.scene.add(carpet);
+
+    const furnMat = new THREE.MeshStandardMaterial({ color: 0x14141a, roughness: 0.4, metalness: 0.55 });
+    const furniture: [number, number, number, number, number][] = [
+      [-46, -36, 1.6, 0.6, 1.0], [-40, -30, 1.2, 0.5, 1.2], [-44, -28, 1.0, 0.9, 0.5], [-38, -35, 1.8, 0.5, 0.9],
+    ];
+    for (const [x, z, w, h, dd] of furniture) {
+      const t = new THREE.Mesh(new THREE.BoxGeometry(w, h, dd), furnMat);
+      t.position.set(x, h / 2, z); t.rotation.y = rng() * 0.6; t.castShadow = true; t.receiveShadow = true;
+      this.scene.add(t);
+      this.colliders.push({ box: new THREE.Box3().setFromObject(t), material: 'metal' });
+    }
+
+    // Partial room enclosures (three walls + a doorway) to fight through.
+    const room = (x: number, z: number, ry: number) => {
+      const parts: THREE.Mesh[] = [
+        new THREE.Mesh(new THREE.BoxGeometry(13, 5.5, 0.6), this.materials.concrete),   // back
+        new THREE.Mesh(new THREE.BoxGeometry(0.6, 5.5, 13), this.materials.concrete),   // left
+        new THREE.Mesh(new THREE.BoxGeometry(0.6, 5.5, 5.5), this.materials.concrete),  // right (partial → doorway)
+      ];
+      parts[0].position.set(0, 2.75, -6.5);
+      parts[1].position.set(-6.5, 2.75, 0);
+      parts[2].position.set(6.5, 2.75, -3.75);
+      const g = new THREE.Group();
+      parts.forEach((p) => { p.castShadow = true; p.receiveShadow = true; g.add(p); });
+      g.position.set(x, 0, z); g.rotation.y = ry; this.scene.add(g);
+      parts.forEach((p) => {
+        this.raycastTargets.push(p);
+        this.colliders.push({ box: new THREE.Box3().setFromObject(p), material: 'concrete' });
+      });
+    };
+    room(62, 52, -0.7);
+    room(-66, -44, 0.55);
+    room(56, -58, 2.3);
   }
 
   private buildProps(rng: () => number, shadow: boolean) {
     // Environmental storytelling: emergency lights, barricades, drone remains.
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 9; i++) {
       const a = rng() * Math.PI * 2, r = 15 + rng() * 60;
       const x = Math.cos(a) * r, z = Math.sin(a) * r;
-      const light = new THREE.PointLight(0xff4a1e, 7, 16, 2);
-      light.position.set(x, 3, z);
-      this.scene.add(light);
       const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), new THREE.MeshBasicMaterial({ color: 0xff6a2e }));
-      bulb.position.copy(light.position);
+      bulb.position.set(x, 3, z);
       this.scene.add(bulb);
+      // Only some emergency lamps carry a real light (perf); the rest just glow.
+      if (i < 4) {
+        const light = new THREE.PointLight(0xff4a1e, 7, 16, 2);
+        light.position.copy(bulb.position);
+        this.scene.add(light);
+      }
     }
     // Broken drone husks (metal debris).
     for (let i = 0; i < 6; i++) {
@@ -293,12 +540,12 @@ export class Arena {
   private keyRef?: THREE.DirectionalLight;
 
   private buildLighting(engine: Engine) {
-    // Cold, weak sky bounce — the concrete is lit mostly by the embers below.
-    const ambient = new THREE.HemisphereLight(0x2b3138, 0x0a0806, 0.32);
+    // Cool sky bounce lifting the concrete so architecture + floor detail read.
+    const ambient = new THREE.HemisphereLight(0x4a525e, 0x1a150f, 0.8);
     this.scene.add(ambient);
     this.ambientRef = ambient;
 
-    const key = new THREE.DirectionalLight(0xaeb8c4, 0.55);
+    const key = new THREE.DirectionalLight(0xc2ccd8, 1.05);
     key.position.set(60, 90, 30);
     key.castShadow = engine.shadowsEnabled;
     if (engine.shadowsEnabled && engine.shadowMapSize) {
@@ -311,6 +558,12 @@ export class Arena {
     this.scene.add(key);
     this.scene.add(key.target);
     this.keyRef = key;
+
+    // Warm fill from the opposite side (no shadow → cheap) so the coffered
+    // ceiling and towers don't cast the plaza into pure black.
+    const fill = new THREE.DirectionalLight(0xc4b09a, 0.42);
+    fill.position.set(-55, 34, -46);
+    this.scene.add(fill);
   }
 
   /** Ember light-strips raking the floor — the signature glow of the mood board. */
@@ -327,17 +580,13 @@ export class Arena {
       const bar = new THREE.Mesh(new THREE.BoxGeometry(w, 0.16, d), stripMat);
       bar.position.set(x, 0.32, z);
       this.scene.add(bar);
-      for (let i = 0; i < 2; i++) {
-        const t = i === 0 ? -0.3 : 0.3;
-        const lx = w > d ? x + t * w : x;
-        const lz = d > w ? z + t * d : z;
-        const pl = new THREE.PointLight(0xff5a24, 5, 30, 2);
-        pl.position.set(lx, 1.4, lz);
-        this.scene.add(pl);
-      }
+      // One dynamic light per wall — the strips themselves bloom for the rest.
+      const pl = new THREE.PointLight(0xff5a24, 5.5, 34, 2);
+      pl.position.set(x, 1.4, z);
+      this.scene.add(pl);
     }
-    // A few interior floor cuts of ember light near the plaza rim.
-    for (let i = 0; i < 3; i++) {
+    // A couple of interior floor cuts of ember light near the plaza rim.
+    for (let i = 0; i < 2; i++) {
       const a = rng() * Math.PI * 2, r = 22 + rng() * 12;
       const x = Math.cos(a) * r, z = Math.sin(a) * r;
       const bar = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.14, 6 + rng() * 6), stripMat);
@@ -349,17 +598,28 @@ export class Arena {
 
   /** Overhead light-well: a bright disc + spot casting a pool on the plaza. */
   private buildOculus() {
+    // Bright skylight disc above the coffered light-well.
     const disc = new THREE.Mesh(
-      new THREE.CircleGeometry(20, 48),
-      new THREE.MeshBasicMaterial({ color: 0xdfe6ea, side: THREE.DoubleSide }),
+      new THREE.CircleGeometry(14, 48),
+      new THREE.MeshBasicMaterial({ color: 0xeef2f6, side: THREE.DoubleSide }),
     );
-    disc.rotation.x = Math.PI / 2; disc.position.set(0, 42, 0);
+    disc.rotation.x = Math.PI / 2; disc.position.set(0, 44, 0);
     this.scene.add(disc);
-    const spot = new THREE.SpotLight(0xcfe0ff, 3.4, 130, Math.PI / 5, 0.55, 1.1);
-    spot.position.set(0, 44, 0);
+
+    // A strong shaft pooling light on the plaza around the central pillar.
+    const spot = new THREE.SpotLight(0xdce6f4, 6.5, 160, Math.PI / 4.4, 0.5, 1.0);
+    spot.position.set(0, 46, 0);
     spot.target.position.set(0, 0, 0);
     this.scene.add(spot);
     this.scene.add(spot.target);
+
+    // Soft additive "pool" decal on the floor so the light reads even at grazing angles.
+    const pool = new THREE.Mesh(
+      new THREE.CircleGeometry(22, 48),
+      new THREE.MeshBasicMaterial({ color: 0x9fb2c8, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false }),
+    );
+    pool.rotation.x = -Math.PI / 2; pool.position.set(0, 0.04, 0);
+    this.scene.add(pool);
   }
 
   /** Stencilled wayfinding — "FLOOR 01 / UNIT NN" on the perimeter, per reference. */
@@ -414,9 +674,9 @@ export class Arena {
   update(dt: number, elapsed: number, camPos: THREE.Vector3) {
     // Day→night cycle over ~5 minutes: swing exposure + sky tint + key colour.
     const cycle = (Math.sin(elapsed * 0.0035) + 1) / 2; // 0 night .. 1 dusk
-    if (this.ambient) this.ambient.intensity = 0.17 + cycle * 0.24;
+    if (this.ambient) this.ambient.intensity = 0.72 + cycle * 0.34;
     if (this.keyLight) {
-      this.keyLight.intensity = 0.3 + cycle * 0.5;
+      this.keyLight.intensity = 0.62 + cycle * 0.6;
       this.keyLight.color.setHSL(0.6 - cycle * 0.06, 0.35, 0.55 + cycle * 0.08);
       // Keep the shadow frustum centred on the player.
       this.keyLight.target.position.set(camPos.x, 0, camPos.z);
