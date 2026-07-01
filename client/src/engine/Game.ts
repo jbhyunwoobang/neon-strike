@@ -148,7 +148,16 @@ export class Game {
     // Debug handle for automated tests — stripped from production builds.
     if ((import.meta as any).env?.DEV) {
       (window as any).__ns = {
-        game: this, player: this.player, enemies: this.enemies,
+        game: this, player: this.player, enemies: this.enemies, engine: this.engine,
+        // Force a deterministic render (for screenshots when rAF is throttled):
+        // aim the camera, refresh matrices, draw one frame.
+        renderAt: (x: number, y: number, z: number, yaw: number, pitch: number) => {
+          const cam = this.engine.camera;
+          cam.position.set(x, y, z);
+          cam.rotation.set(pitch, yaw, 0, 'YXZ');
+          this.engine.scene.updateMatrixWorld(true);
+          this.engine.composer.render();
+        },
         nearestEnemyDist: () => {
           let best = Infinity;
           for (const m of this.enemies.meshes()) {

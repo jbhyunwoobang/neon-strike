@@ -155,7 +155,7 @@ export class Arena {
     this.buildSkyBridges(rng);
     this.buildPillars(rng, engine.shadowsEnabled);
     this.buildLighting(engine);
-    this.buildCofferedCeiling(engine.shadowsEnabled);
+    this.buildCurvedChamber(engine.shadowsEnabled);
     this.buildStaircases(rng);
     this.buildDebris(rng);
     this.buildRooms(rng);
@@ -365,57 +365,41 @@ export class Arena {
     }
   }
 
-  /* Coffered ceiling with a central square light-well (reference boards). */
-  private buildCofferedCeiling(shadow: boolean) {
-    const y = 22, half = 34, hole = 11; // hole = half-width of the central opening
-    const mat = this.materials.concrete;
-    // Top slab as a frame of four beams around the central light-well.
-    const frame: [number, number, number, number][] = [
-      [half * 2, half - hole, 0, (hole + half) / 2],
-      [half * 2, half - hole, 0, -(hole + half) / 2],
-      [half - hole, hole * 2, (hole + half) / 2, 0],
-      [half - hole, hole * 2, -(hole + half) / 2, 0],
-    ];
-    for (const [w, d, x, z] of frame) {
-      const s = new THREE.Mesh(new THREE.BoxGeometry(w, 1.6, d), mat);
-      s.position.set(x, y + 0.8, z); s.castShadow = shadow; s.receiveShadow = true; this.scene.add(s);
-    }
-    // Waffle beams under the frame (skip the light-well) → coffers.
-    const n = 8, cell = (half * 2) / n, beamH = 2.6;
-    for (let i = 0; i <= n; i++) {
-      const p = -half + i * cell;
-      // X-spanning beam at z=p, split around the hole
-      if (Math.abs(p) >= hole) {
-        const bx = new THREE.Mesh(new THREE.BoxGeometry(half * 2, beamH, 0.9), mat);
-        bx.position.set(0, y - beamH / 2, p); bx.castShadow = shadow; bx.receiveShadow = true; this.scene.add(bx);
-        const bz = new THREE.Mesh(new THREE.BoxGeometry(0.9, beamH, half * 2), mat);
-        bz.position.set(p, y - beamH / 2, 0); bz.castShadow = shadow; bz.receiveShadow = true; this.scene.add(bz);
-      } else {
-        // near the hole, only the outer segments
-        for (const seg of [1, -1]) {
-          const len = half - hole;
-          const bx = new THREE.Mesh(new THREE.BoxGeometry(len, beamH, 0.9), mat);
-          bx.position.set(seg * (hole + len / 2), y - beamH / 2, p); bx.castShadow = shadow; this.scene.add(bx);
-          const bz = new THREE.Mesh(new THREE.BoxGeometry(0.9, beamH, len), mat);
-          bz.position.set(p, y - beamH / 2, seg * (hole + len / 2)); bz.castShadow = shadow; this.scene.add(bz);
-        }
-      }
-    }
+  /* Curved concrete dome-canopy with an elliptical oculus — the smooth
+   * lathe-shell hero space (reference 2). Overhead, so the plaza stays open. */
+  private buildCurvedChamber(shadow: boolean) {
+    // Profile revolved around Y: wide skirt at the base curving up and inward
+    // to the oculus rim. Low-ish segments keep it faceted-yet-smooth + cheap.
+    const profile: THREE.Vector2[] = [
+      [42, 8.5], [41.2, 11], [39, 13.4], [35.5, 15.8], [30.5, 18.2],
+      [24.5, 20.4], [18.5, 22.2], [14.5, 23.6], [13, 24.4],
+    ].map(([r, y]) => new THREE.Vector2(r, y));
+    const geo = new THREE.LatheGeometry(profile, 96);
+    geo.computeVertexNormals();
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0xb4aea3, roughness: 0.92, metalness: 0.05, map: this.aggregateTex, side: THREE.DoubleSide,
+    });
+    const dome = new THREE.Mesh(geo, mat);
+    dome.castShadow = shadow; dome.receiveShadow = true;
+    this.scene.add(dome);
 
-    // Recessed warm downlights in a ring of coffers — lifts the atrium and adds
-    // the ceiling-light detail from the reference interiors.
-    const lamps: [number, number][] = [
-      [-22, -22], [22, -22], [-22, 22], [22, 22],
-      [0, -26], [0, 26], [-26, 0], [26, 0],
-    ];
-    lamps.forEach(([lx, lz], i) => {
-      // Every lamp gets an emissive disc (free glow via bloom); only a few carry
-      // an actual dynamic light, to keep the light count cheap.
-      const bulb = new THREE.Mesh(new THREE.CircleGeometry(0.9, 16), new THREE.MeshBasicMaterial({ color: 0xffdca6 }));
-      bulb.rotation.x = Math.PI / 2; bulb.position.set(lx, y - beamH - 0.15, lz); this.scene.add(bulb);
-      if (i % 2 === 0) {
-        const pl = new THREE.PointLight(0xffdca6, 3.6, 46, 2); pl.position.set(lx, y - beamH - 0.6, lz); this.scene.add(pl);
-      }
+    // A thin lower rim + oculus rim to crisp the curved edges.
+    const rimMat = new THREE.MeshStandardMaterial({ color: 0x77726a, roughness: 0.9, metalness: 0.1, map: this.aggregateTex });
+    const baseRim = new THREE.Mesh(new THREE.TorusGeometry(42, 0.5, 10, 96), rimMat);
+    baseRim.rotation.x = Math.PI / 2; baseRim.position.y = 8.5; this.scene.add(baseRim);
+    const ocuRim = new THREE.Mesh(new THREE.TorusGeometry(13, 0.6, 10, 72), rimMat);
+    ocuRim.rotation.x = Math.PI / 2; ocuRim.position.y = 24.4; this.scene.add(ocuRim);
+
+    // Warm ember light-strip washing the base of the curved wall (per reference).
+    const emberRing = new THREE.Mesh(new THREE.TorusGeometry(41.4, 0.28, 8, 110), this.neonMats[0]);
+    emberRing.rotation.x = Math.PI / 2; emberRing.position.y = 9.2; this.scene.add(emberRing);
+
+    // A few warm accent lights under the canopy so the curved shell reads.
+    const accents: [number, number][] = [[24, 0], [-24, 0], [0, 24], [0, -24]];
+    accents.forEach(([x, z], i) => {
+      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffcf9a }));
+      bulb.position.set(x, 15, z); this.scene.add(bulb);
+      if (i % 2 === 0) { const pl = new THREE.PointLight(0xffcf9a, 3.2, 48, 2); pl.position.set(x, 14, z); this.scene.add(pl); }
     });
   }
 
