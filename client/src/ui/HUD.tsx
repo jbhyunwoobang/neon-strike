@@ -39,7 +39,7 @@ export function Hud() {
   return (
     <div className="hud">
       {dmgOn && <div className="damage-flash" />}
-      <div className="crosshair"><i /></div>
+      <div className="crosshair"><span className="t u" /><span className="t d" /><span className="t l" /><span className="t r" /><i /></div>
       {hitOn && <div className="hitmarker" style={{ color: hud.headshot ? 'var(--warn)' : '#fff' }}><span className="h" /><span className="v" /></div>}
 
       {showFps && <div className="hud-fps">{hud.fps} FPS</div>}
