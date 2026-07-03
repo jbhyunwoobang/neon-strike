@@ -79,8 +79,8 @@ export function App() {
   /* ------------------------------ solo ------------------------------ */
   function startSolo() {
     store.get().setMode('coop');
-    const { weapon, grenade } = store.get().loadout;
-    beginMatch({ mode: 'coop', seed: (Math.random() * 1e9) | 0, startWeapon: weapon, grenade });
+    const { weapon, grenade, map } = store.get().loadout;
+    beginMatch({ mode: 'coop', seed: (Math.random() * 1e9) | 0, startWeapon: weapon, grenade, theme: map });
   }
 
   /* --------------------------- multiplayer -------------------------- */

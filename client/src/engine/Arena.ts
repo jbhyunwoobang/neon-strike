@@ -70,9 +70,9 @@ interface ThemeCfg {
 
 const THEMES: Record<MapTheme, ThemeCfg> = {
   sanctum: {
-    skyTop: 0x241812, skyHorizon: 0x54342a, fogColor: 0x3d2a20, fogMul: 0.85,
-    concrete: 0xc79f88, floorColor: 0xb08a72, floorRough: 0.8, floorMetal: 0.05,
-    ambSky: 0xe8c3a4, ambGround: 0x63392a, ambI: 0.95,
+    skyTop: 0x2a1a13, skyHorizon: 0x5e3a2c, fogColor: 0x462d23, fogMul: 0.85,
+    concrete: 0xd2a98c, floorColor: 0xc0997c, floorRough: 0.82, floorMetal: 0.04,
+    ambSky: 0xf0c7a4, ambGround: 0x6b3d2a, ambI: 1.0,
     keyColor: 0xffd9b0, keyI: 0.9, fillColor: 0xe0784a, fillI: 0.5, accent: 0xe0653a,
     enclosed: true, ceiling: 'coffers-warm', pillars: true, city: false, exterior: null,
     rain: false, lightning: false, dayCycle: false,
@@ -80,10 +80,10 @@ const THEMES: Record<MapTheme, ThemeCfg> = {
     carpet: 'run', redwoods: false, monoliths: false, greatwall: false, lightwell: false,
   },
   lighthouse: {
-    skyTop: 0x030304, skyHorizon: 0x0a0a0d, fogColor: 0x08080a, fogMul: 1.05,
-    concrete: 0x94908a, floorColor: 0x8e897f, floorRough: 0.34, floorMetal: 0.3,
-    ambSky: 0x2c313a, ambGround: 0x0d0d10, ambI: 0.4,
-    keyColor: 0xeef2f8, keyI: 0.45, fillColor: 0xc2a44e, fillI: 0.18, accent: 0xc2a44e,
+    skyTop: 0x030304, skyHorizon: 0x0a0a0d, fogColor: 0x07070a, fogMul: 1.05,
+    concrete: 0x8f8b84, floorColor: 0x7e7a72, floorRough: 0.3, floorMetal: 0.32,
+    ambSky: 0x272c34, ambGround: 0x0b0b0e, ambI: 0.32,
+    keyColor: 0xeef2f8, keyI: 0.4, fillColor: 0xc2a44e, fillI: 0.16, accent: 0xc2a44e,
     enclosed: true, ceiling: 'coffers-dark', pillars: true, city: false, exterior: null,
     rain: false, lightning: false, dayCycle: false,
     water: false, waterfall: false, oculus: false, glowStrips: false, signage: false,
@@ -91,7 +91,7 @@ const THEMES: Record<MapTheme, ThemeCfg> = {
   },
   atrium: {
     skyTop: 0xaebbb7, skyHorizon: 0xdde5e0, fogColor: 0xa9b8b1, fogMul: 1.7,
-    concrete: 0xcfd2c9, floorColor: 0x5b615a, floorRough: 0.26, floorMetal: 0.5,
+    concrete: 0xd4d6cd, floorColor: 0x525c53, floorRough: 0.24, floorMetal: 0.52,
     ambSky: 0xd2dcd6, ambGround: 0x4c584a, ambI: 1.35,
     keyColor: 0xe8eee9, keyI: 0.85, fillColor: 0xb9c8bd, fillI: 0.4, accent: 0x8fae9a,
     enclosed: false, ceiling: 'dome', pillars: true, city: true, exterior: 'green',
@@ -101,7 +101,7 @@ const THEMES: Record<MapTheme, ThemeCfg> = {
   },
   skyfall: {
     skyTop: 0x46435e, skyHorizon: 0x8a7a66, fogColor: 0x6e6980, fogMul: 0.4,
-    concrete: 0x837c72, floorColor: 0x6a5f50, floorRough: 0.95, floorMetal: 0.03,
+    concrete: 0x7a7062, floorColor: 0x4e463c, floorRough: 0.95, floorMetal: 0.03,
     ambSky: 0x8b84a8, ambGround: 0x453d31, ambI: 0.85,
     keyColor: 0xffd9a0, keyI: 1.35, fillColor: 0x7d76a0, fillI: 0.4, accent: 0xd9a24e,
     enclosed: false, ceiling: null, pillars: false, city: false, exterior: 'rocky',
@@ -111,8 +111,8 @@ const THEMES: Record<MapTheme, ThemeCfg> = {
   },
   bastion: {
     skyTop: 0x5e6467, skyHorizon: 0x9aa0a0, fogColor: 0x7c8382, fogMul: 0.75,
-    concrete: 0x8b8d7f, floorColor: 0x57633c, floorRough: 1.0, floorMetal: 0.0,
-    ambSky: 0x97a492, ambGround: 0x2f3d24, ambI: 1.15,
+    concrete: 0x878a78, floorColor: 0x4f6a2e, floorRough: 1.0, floorMetal: 0.0,
+    ambSky: 0x9aa892, ambGround: 0x33481f, ambI: 1.2,
     keyColor: 0xcfd6d2, keyI: 1.0, fillColor: 0x8f9a84, fillI: 0.4, accent: 0xd9552b,
     enclosed: false, ceiling: null, pillars: false, city: false, exterior: 'green',
     rain: true, lightning: true, dayCycle: true,
@@ -883,7 +883,7 @@ export class Arena {
     ground.rotation.x = -Math.PI / 2; ground.position.y = -0.6; ground.receiveShadow = true; this.scene.add(ground);
 
     // Rolling mounds — mossy (green) or ochre scree (rocky).
-    const hillMat = new THREE.MeshStandardMaterial({ color: green ? 0x38492a : 0x5f5240, roughness: 1, flatShading: true });
+    const hillMat = new THREE.MeshStandardMaterial({ color: green ? 0x42592a : 0x554a3a, roughness: 1, flatShading: true });
     for (let i = 0; i < 16; i++) {
       const a = rng() * Math.PI * 2, r = 150 + rng() * 240, s = 40 + rng() * 90;
       const hill = new THREE.Mesh(new THREE.SphereGeometry(s, 10, 7), hillMat);
@@ -1088,6 +1088,28 @@ export class Arena {
         lamp.rotation.x = Math.PI / 2; lamp.position.set(x, H - 0.75, z); this.scene.add(lamp);
         if (i < 4) { const pl = new THREE.PointLight(0xffd9ae, 5, 44, 1.9); pl.position.set(x, H - 4, z); this.scene.add(pl); }
       }
+      // Long white linear skylights (ref 1's ceiling light slots).
+      for (let i = 0; i < 5; i++) {
+        const slot = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.3, 24 + rng() * 20),
+          new THREE.MeshBasicMaterial({ color: 0xfff4e2 }));
+        slot.position.set((rng() - 0.5) * (P * 2 - 46), H - 0.6, (rng() - 0.5) * (P * 2 - 46));
+        slot.rotation.y = rng() > 0.5 ? Math.PI / 2 : 0;
+        this.scene.add(slot);
+      }
+      // Diagonal wall braces (ref 1's leaning columns) + potted plants.
+      const braceMat = new THREE.MeshStandardMaterial({ color: 0xc59a80, roughness: 0.92, map: this.aggregateTex });
+      const plantMat = new THREE.MeshStandardMaterial({ color: 0x2e4a2c, roughness: 1, flatShading: true });
+      for (let i = 0; i < 4; i++) {
+        const ang = (i / 4) * Math.PI * 2 + Math.PI / 4;
+        const bx = Math.cos(ang) * (P - 10), bz = Math.sin(ang) * (P - 10);
+        const brace = new THREE.Mesh(new THREE.BoxGeometry(3.4, 26, 5), braceMat);
+        brace.position.set(bx, 12, bz);
+        brace.rotation.set(Math.sin(ang) * 0.35, 0, Math.cos(ang) * 0.35);
+        brace.castShadow = shadow; this.scene.add(brace);
+        this.colliders.push({ box: new THREE.Box3().setFromObject(brace), material: 'concrete' });
+        const plant = new THREE.Mesh(new THREE.IcosahedronGeometry(0.9, 1), plantMat);
+        plant.position.set(bx * 0.88, 1.1, bz * 0.88); this.scene.add(plant);
+      }
     } else {
       // Ref 2: a deep, dark structural grid — long crossing beams.
       const beamMat = new THREE.MeshStandardMaterial({ color: 0x0c0d10, roughness: 0.9, metalness: 0.15 });
@@ -1107,7 +1129,8 @@ export class Arena {
 
   /** Red carpet — the chromatic anchor of refs 1 & 2. */
   private buildCarpet(kind: 'run' | 'zone', rng: () => number) {
-    const carpetMat = new THREE.MeshStandardMaterial({ color: kind === 'run' ? 0xa8341f : 0x8e2a1a, roughness: 0.98, metalness: 0 });
+    // Ref 1's carpet burns orange-red; ref 2's lobby island is a deeper crimson.
+    const carpetMat = new THREE.MeshStandardMaterial({ color: kind === 'run' ? 0xbf4526 : 0x8e2a1a, roughness: 0.98, metalness: 0 });
     if (kind === 'run') {
       // A grand carpet run with broad carpeted steps rising to the south (ref 1).
       const run = new THREE.Mesh(new THREE.PlaneGeometry(24, 70), carpetMat);
@@ -1143,16 +1166,27 @@ export class Arena {
         f.rotation.y = rng() * Math.PI; f.castShadow = true; this.scene.add(f);
         this.colliders.push({ box: new THREE.Box3().setFromObject(f), material: 'metal' });
       }
-      // Planter with broad leaves.
-      const leafMat = new THREE.MeshStandardMaterial({ color: 0x2e4a2c, roughness: 1, flatShading: true });
-      const pot = new THREE.Mesh(new THREE.BoxGeometry(4, 1, 4), this.materials.concrete);
-      pot.position.set(0, 0.5, 26); this.scene.add(pot);
+      // Planter with broad pale leaves hugging the core's base (ref 2).
+      const leafMat = new THREE.MeshStandardMaterial({ color: 0x51684a, roughness: 1, flatShading: true });
+      const pot = new THREE.Mesh(new THREE.BoxGeometry(7, 1.1, 2.6), this.materials.concrete);
+      pot.position.set(0, 0.55, 5.6); this.scene.add(pot);
       this.colliders.push({ box: new THREE.Box3().setFromObject(pot), material: 'concrete' });
-      for (let i = 0; i < 8; i++) {
-        const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.5, 2.6, 5), leafMat);
-        leaf.position.set((rng() - 0.5) * 2.4, 2 + rng(), 26 + (rng() - 0.5) * 2.4);
+      for (let i = 0; i < 10; i++) {
+        const leaf = new THREE.Mesh(new THREE.ConeGeometry(0.55, 2.8, 5), leafMat);
+        leaf.position.set((rng() - 0.5) * 5.5, 1.9 + rng(), 5.6 + (rng() - 0.5) * 1.6);
         leaf.rotation.set((rng() - 0.5) * 0.9, rng() * Math.PI, (rng() - 0.5) * 0.9);
         this.scene.add(leaf);
+      }
+      // Rows of abandoned desks receding into the dark (ref 2's office floor).
+      const deskMat = new THREE.MeshStandardMaterial({ color: 0x17181c, roughness: 0.7, metalness: 0.2 });
+      for (let row = 0; row < 4; row++) {
+        for (let col = 0; col < 5; col++) {
+          const desk = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.85, 1.1), deskMat);
+          desk.position.set(-88 + col * 7 + (rng() - 0.5), 0.42, -20 + row * 9 + (rng() - 0.5) * 2);
+          desk.rotation.y = (rng() - 0.5) * 0.15;
+          this.scene.add(desk);
+          this.colliders.push({ box: new THREE.Box3().setFromObject(desk), material: 'metal' });
+        }
       }
     }
   }
@@ -1242,12 +1276,45 @@ export class Arena {
         this.scene.add(clump);
       }
     }
+
+    // Ref 3's centrepiece: a raised planter island with a lone twisted tree.
+    const pot = new THREE.Mesh(new THREE.BoxGeometry(7, 1.4, 7), this.materials.concrete);
+    pot.position.set(14, 0.7, 22); this.scene.add(pot);
+    this.colliders.push({ box: new THREE.Box3().setFromObject(pot), material: 'concrete' });
+    const twMat = new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 1 });
+    let ty = 1.4;
+    for (let seg = 0; seg < 4; seg++) {
+      const limb = new THREE.Mesh(new THREE.CylinderGeometry(0.16 - seg * 0.03, 0.22 - seg * 0.03, 1.6, 7), twMat);
+      limb.position.set(14 + Math.sin(seg * 1.8) * 0.7, ty + 0.7, 22 + Math.cos(seg * 1.6) * 0.5);
+      limb.rotation.set(Math.sin(seg) * 0.5, 0, Math.cos(seg * 2) * 0.45);
+      this.scene.add(limb); ty += 1.25;
+    }
+    const crown = new THREE.Mesh(new THREE.IcosahedronGeometry(2.2, 1),
+      new THREE.MeshStandardMaterial({ color: 0x486242, roughness: 1, flatShading: true }));
+    crown.position.set(14.4, ty + 1.2, 22); crown.scale.y = 0.7; this.scene.add(crown);
   }
 
   /** Ref 4's hero: colossal shattered monoliths hovering in the golden sky,
    *  trailing debris — they bob almost imperceptibly (see update()). */
   private buildMonoliths(rng: () => number) {
-    const rockMat = new THREE.MeshStandardMaterial({ color: 0x4a4550, roughness: 0.92, metalness: 0.1, map: this.aggregateTex });
+    // Ref 4: tan/brown weathered slab bodies, shattered dark undersides.
+    const rockMat = new THREE.MeshStandardMaterial({ color: 0x6e6154, roughness: 0.92, metalness: 0.08, map: this.aggregateTex });
+    const darkMat = new THREE.MeshStandardMaterial({ color: 0x2f2b33, roughness: 0.95, flatShading: true });
+
+    // Soft cloud banks drifting between the monoliths.
+    for (let i = 0; i < 6; i++) {
+      const cloud = new THREE.Mesh(
+        new THREE.PlaneGeometry(260 + rng() * 200, 60 + rng() * 40),
+        new THREE.MeshBasicMaterial({
+          color: 0xcfc8d8, transparent: true, opacity: 0.1 + rng() * 0.08,
+          blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false,
+        }),
+      );
+      const ca = rng() * Math.PI * 2, cr = 200 + rng() * 250;
+      cloud.position.set(Math.cos(ca) * cr, 90 + rng() * 70, Math.sin(ca) * cr);
+      cloud.rotation.y = ca + Math.PI / 2;
+      this.scene.add(cloud);
+    }
     const glowMat = new THREE.MeshStandardMaterial({ color: 0x3a2c14, emissive: 0xffca7a, emissiveIntensity: 1.5, roughness: 0.6 });
     for (let i = 0; i < 7; i++) {
       const g = new THREE.Group();
@@ -1260,10 +1327,10 @@ export class Arena {
       // Sunlit face — a gold-glowing panel on one side (ref 4's lit column).
       const lit = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.92, h * 0.6), glowMat);
       lit.position.set(0, h * 0.08, d / 2 + 0.2); g.add(lit);
-      // Crumbling base: clustered small chunks below + drifting shards.
+      // Crumbling base: clustered dark chunks below + drifting shards.
       for (let cN = 0; cN < 9; cN++) {
         const cs = 1.2 + rng() * 4;
-        const chunk = new THREE.Mesh(new THREE.BoxGeometry(cs, cs * (0.5 + rng()), cs * 0.8), rockMat);
+        const chunk = new THREE.Mesh(new THREE.BoxGeometry(cs, cs * (0.5 + rng()), cs * 0.8), darkMat);
         chunk.position.set((rng() - 0.5) * w, -h / 2 - rng() * 22, (rng() - 0.5) * d * 1.6);
         chunk.rotation.set(rng() * 3, rng() * 3, rng() * 3);
         g.add(chunk);
@@ -1277,8 +1344,8 @@ export class Arena {
 
   /** Ref 5's hero: an ancient colossal wall breaking out of a mossy berm. */
   private buildGreatWall(rng: () => number, shadow: boolean) {
-    const ancientMat = new THREE.MeshStandardMaterial({ color: 0x7f8276, roughness: 0.98, metalness: 0.04, map: this.aggregateTex });
-    const mossMat = new THREE.MeshStandardMaterial({ color: 0x3f5427, roughness: 1, flatShading: true });
+    const ancientMat = new THREE.MeshStandardMaterial({ color: 0x6e6a5c, roughness: 0.98, metalness: 0.04, map: this.aggregateTex });
+    const mossMat = new THREE.MeshStandardMaterial({ color: 0x4c6a28, roughness: 1, flatShading: true });
     const a = rng() * Math.PI * 2;
     const cx = Math.cos(a) * 200, cz = Math.sin(a) * 200;
 
@@ -1321,6 +1388,30 @@ export class Arena {
     const geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     this.scene.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: 0x14171a, size: 1.1 })));
+
+    // Standing stones + scattered red wildflowers on the green (ref 5's
+    // foreground: dark megalith dots + tiny red blooms in the moss).
+    const stoneMat = new THREE.MeshStandardMaterial({ color: 0x4a4a44, roughness: 1, flatShading: true });
+    for (let i = 0; i < 7; i++) {
+      const sa = rng() * Math.PI * 2, sr = 30 + rng() * 65;
+      const h = 1.6 + rng() * 2.4;
+      const stone = new THREE.Mesh(new THREE.BoxGeometry(0.9 + rng() * 0.6, h, 0.7 + rng() * 0.5), stoneMat);
+      stone.position.set(Math.cos(sa) * sr, h / 2, Math.sin(sa) * sr);
+      stone.rotation.set((rng() - 0.5) * 0.15, rng() * Math.PI, (rng() - 0.5) * 0.12);
+      stone.castShadow = shadow; this.scene.add(stone);
+      this.colliders.push({ box: new THREE.Box3().setFromObject(stone), material: 'concrete' });
+    }
+    const flowerMat = new THREE.MeshStandardMaterial({ color: 0xb3402f, emissive: 0x6a1a10, emissiveIntensity: 0.4, roughness: 1 });
+    const flowerGeo = new THREE.SphereGeometry(0.09, 6, 5);
+    const flowers = new THREE.InstancedMesh(flowerGeo, flowerMat, 90);
+    const fd = new THREE.Object3D();
+    for (let i = 0; i < 90; i++) {
+      const fa2 = rng() * Math.PI * 2, fr = 8 + rng() * 90;
+      fd.position.set(Math.cos(fa2) * fr, 0.1, Math.sin(fa2) * fr);
+      fd.updateMatrix(); flowers.setMatrixAt(i, fd.matrix);
+    }
+    flowers.instanceMatrix.needsUpdate = true;
+    this.scene.add(flowers);
   }
 
   /* -------------------------------- update ------------------------------- */

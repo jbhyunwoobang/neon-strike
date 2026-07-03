@@ -115,6 +115,13 @@ export class WeaponController {
   private vmClock = 0;
   private scopeOn = false;   // currently in full scope view (scoped weapon, ADS held)
 
+  // Grenade throw-arm: a dedicated gloved arm that sweeps overhead when a
+  // grenade is tossed, while the weapon dips aside. Built lazily.
+  private throwArm: THREE.Group | null = null;
+  private throwNade: THREE.Mesh | null = null;
+  private throwT = 0;
+  private readonly throwDur = 0.55;
+
   index = 2;                 // start on the AR
   ammo: number[] = [];
   reserve: number[] = [];
@@ -167,7 +174,9 @@ export class WeaponController {
     const tan = new THREE.MeshStandardMaterial({ color: 0x8a774f, roughness: 0.6, metalness: 0.25 });
     const olive = new THREE.MeshStandardMaterial({ color: 0x3a4230, roughness: 0.6, metalness: 0.3 });
     const wood = new THREE.MeshStandardMaterial({ color: 0x5a3f26, roughness: 0.6, metalness: 0.1 });
-    const glove = new THREE.MeshStandardMaterial({ color: 0x1b1b20, roughness: 0.82, metalness: 0.12 });
+    // Worn tan-leather gloves — light enough to clearly read against the dark
+    // gun body (the old near-black gloves vanished into silhouette).
+    const glove = new THREE.MeshStandardMaterial({ color: 0x4a3f33, roughness: 0.88, metalness: 0.05 });
     const emberDot = new THREE.MeshBasicMaterial({ color: 0xd9552b });
     const lens = new THREE.MeshStandardMaterial({ color: 0x3a5a7a, roughness: 0.1, metalness: 0.3, emissive: 0x14324a, emissiveIntensity: 0.6 });
 
@@ -423,18 +432,44 @@ export class WeaponController {
     glove: THREE.Material, kind: 'rifle' | 'pistol' | 'knife', fgZ = -0.42,
   ) {
     const gripZ = kind === 'pistol' ? 0.04 : kind === 'knife' ? 0.02 : 0.05;
-    // Right hand on the grip + forearm angling to the lower-right of the frame.
-    add(box(0.055, 0.06, 0.075, glove), 0.005, -0.14, gripZ);
-    for (let i = 0; i < 4; i++) add(box(0.015, 0.02, 0.055, glove), -0.02 + i * 0.013, -0.115, gripZ - 0.03, 0.5, 0, 0);
-    add(box(0.02, 0.045, 0.05, glove), 0.028, -0.13, gripZ + 0.01);
-    add(cyl(0.032, 0.04, 0.34, glove, 8), 0.075, -0.26, gripZ + 0.16, 1.15, 0, 0.35);
+    // Darker knuckle plates + cuffs so the gloves read as gear, not blobs.
+    const plate = new THREE.MeshStandardMaterial({ color: 0x2a241e, roughness: 0.8, metalness: 0.1 });
+
+    /* ---- RIGHT hand: palm wrapped on the grip, four curled fingers visibly
+     * crossing the front strap, thumb locked over the left side, forearm
+     * running to the lower-right corner of the frame. ---- */
+    add(box(0.062, 0.075, 0.095, glove), 0.008, -0.105, gripZ);                       // palm
+    add(box(0.05, 0.02, 0.07, plate), 0.008, -0.062, gripZ);                          // knuckle plate
+    for (let i = 0; i < 4; i++) {                                                     // curled fingers (2 segments each)
+      const fx = -0.022 + i * 0.015;
+      add(box(0.013, 0.02, 0.05, glove), fx, -0.085, gripZ - 0.052, 0.85, 0, 0);
+      add(box(0.013, 0.03, 0.016, glove), fx, -0.112, gripZ - 0.066, 0.25, 0, 0);
+    }
+    add(box(0.02, 0.055, 0.05, glove), -0.033, -0.1, gripZ + 0.012, 0, 0, 0.3);      // thumb over the left
+    add(box(0.07, 0.05, 0.05, plate), 0.03, -0.15, gripZ + 0.075, 0.5, 0, 0.15);     // cuff
+    add(cyl(0.036, 0.048, 0.36, glove, 12), 0.085, -0.25, gripZ + 0.17, 1.15, 0, 0.35); // forearm
 
     if (kind === 'rifle') {
-      // Left hand on the fore-end at the weapon-specific position.
-      add(box(0.06, 0.06, 0.09, glove), 0, -0.11, fgZ);
-      for (let i = 0; i < 4; i++) add(box(0.016, 0.05, 0.02, glove), -0.03 + i * 0.02, -0.075, fgZ, -0.3, 0, 0);
-      add(box(0.022, 0.05, 0.05, glove), -0.04, -0.1, fgZ + 0.02);
-      add(cyl(0.032, 0.042, 0.36, glove, 8), -0.11, -0.24, fgZ - 0.14, 1.1, 0, -0.5);
+      /* ---- LEFT hand cupping the handguard: palm underneath, fingers curling
+       * up the right flank (camera side) so the grip is unmistakable. ---- */
+      add(box(0.065, 0.07, 0.1, glove), -0.005, -0.085, fgZ);                         // palm under fore-end
+      for (let i = 0; i < 4; i++) {                                                   // fingers wrapping up + over
+        const fz = fgZ - 0.035 + i * 0.024;
+        add(box(0.016, 0.055, 0.018, glove), 0.032, -0.045, fz, 0, 0, -0.35);
+        add(box(0.016, 0.024, 0.016, glove), 0.04, -0.012, fz, 0, 0, -0.9);
+      }
+      add(box(0.02, 0.06, 0.05, glove), -0.042, -0.06, fgZ + 0.02, 0, 0, 0.4);        // thumb up the left flank
+      add(box(0.07, 0.05, 0.05, plate), -0.045, -0.13, fgZ + 0.09, 0.45, 0, -0.2);    // cuff
+      add(cyl(0.036, 0.05, 0.38, glove, 12), -0.115, -0.23, fgZ + 0.16, 1.1, 0, -0.5); // forearm
+    } else if (kind === 'pistol') {
+      // Two-handed pistol grip: left support hand cupped under the right.
+      add(box(0.05, 0.06, 0.08, glove), -0.038, -0.125, gripZ + 0.01, 0, 0, 0.25);
+      for (let i = 0; i < 3; i++) add(box(0.014, 0.045, 0.016, glove), -0.055 + i * 0.014, -0.09, gripZ - 0.04, 0.4, 0, 0.2);
+      add(cyl(0.034, 0.046, 0.34, glove, 12), -0.1, -0.26, gripZ + 0.15, 1.15, 0, -0.4);
+    } else {
+      // Knife: left forearm raised across the lower-left in a guard posture.
+      add(box(0.06, 0.065, 0.09, glove), -0.16, -0.1, -0.14, 0.2, 0.5, 0.2);
+      add(cyl(0.035, 0.047, 0.32, glove, 12), -0.22, -0.22, 0.0, 1.0, 0, -0.55);
     }
   }
 
@@ -451,6 +486,35 @@ export class WeaponController {
 
   /** Manual inspect animation (rotate the weapon to examine it). */
   inspect() { if (!this.reloading && this.inspectT <= 0) this.inspectT = this.inspectDur; }
+
+  /** Play the grenade-throw gesture: gloved arm winds back low-right and whips
+   *  forward overhead; the held grenade vanishes at the release point. */
+  playThrow(kind: string) {
+    if (!this.throwArm) {
+      const g = new THREE.Group();
+      const glove = new THREE.MeshStandardMaterial({ color: 0x4a3f33, roughness: 0.88, metalness: 0.05 });
+      const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.05, 0.4, 12), glove);
+      forearm.position.set(0, -0.18, 0.05); forearm.rotation.x = 1.1;
+      g.add(forearm);
+      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.055, 12, 10), glove);
+      hand.scale.set(1, 0.8, 1.2); g.add(hand);
+      this.throwNade = new THREE.Mesh(
+        new THREE.SphereGeometry(0.045, 14, 12),
+        new THREE.MeshStandardMaterial({ color: 0x3a4230, roughness: 0.5, metalness: 0.5 }),
+      );
+      this.throwNade.position.set(0, 0.02, -0.05);
+      g.add(this.throwNade);
+      g.visible = false;
+      this.ctx.camera.add(g);
+      this.throwArm = g;
+    }
+    // Colour the grenade by type so EMP/flash/smoke read differently in-hand.
+    const col = kind === 'emp' ? 0x2a5a8a : kind === 'flash' ? 0x8a8a84 : kind === 'smoke' ? 0x4a4a4a : 0x3a4230;
+    ((this.throwNade!.material) as THREE.MeshStandardMaterial).color.setHex(col);
+    this.throwNade!.visible = true;
+    this.throwArm.visible = true;
+    this.throwT = this.throwDur;
+  }
 
   /** Hide/show the view-model (e.g. while driving a vehicle). */
   setVisible(v: boolean) { this.group.visible = v; }
@@ -574,6 +638,29 @@ export class WeaponController {
       const env = Math.sin(Math.min(1, p) * Math.PI);
       target.z += env * 0.12; target.x -= env * 0.06; target.y += env * 0.02;
       rotY += env * 0.95; rotX += env * 0.35; rotZ += Math.sin(p * Math.PI * 2) * 0.16 * env;
+    }
+
+    // Grenade throw: the weapon dips left while the throw-arm winds back from
+    // the lower-right and whips forward overhead, releasing mid-swing.
+    if (this.throwT > 0) {
+      this.throwT -= dt;
+      const p = 1 - Math.max(0, this.throwT) / this.throwDur;   // 0 → 1
+      const env = Math.sin(Math.min(1, p) * Math.PI);
+      target.x -= env * 0.14; target.y -= env * 0.1; rotZ -= env * 0.5;  // gun ducks aside
+      if (this.throwArm) {
+        // Wind-back (p<0.35) then whip forward; ease the whip hard.
+        const w = p < 0.35 ? p / 0.35 : 1;
+        const t2 = p < 0.35 ? 0 : Math.min(1, (p - 0.35) / 0.45);
+        const e = t2 * t2 * (3 - 2 * t2);                       // smoothstep whip
+        this.throwArm.position.set(
+          0.3 - e * 0.26,
+          -0.42 + w * 0.06 + e * 0.42,
+          -0.22 - w * 0.06 - e * 0.3,
+        );
+        this.throwArm.rotation.set(-0.9 + e * 2.0, -0.25 + e * 0.15, 0.25 - e * 0.35);
+        if (this.throwNade && t2 > 0.6) this.throwNade.visible = false;  // release point
+        if (p >= 1) this.throwArm.visible = false;
+      }
     }
 
     this.group.position.lerp(target, Math.min(1, dt * 18));

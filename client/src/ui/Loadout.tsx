@@ -1,7 +1,13 @@
-/** Loadout.tsx — Pre-deployment weapon + grenade selection. */
+/** Loadout.tsx — Pre-deployment weapon + grenade + map selection. */
 import { useStore } from '../store';
 import type { GrenadeType } from '../store';
 import { WEAPONS } from '../engine/Weapons';
+import { MAP_THEMES, MAP_NAMES } from '../engine/Arena';
+
+const MAPS: { id: string; name: string }[] = [
+  { id: 'random', name: 'RANDOM' },
+  ...MAP_THEMES.map((t) => ({ id: t as string, name: MAP_NAMES[t] })),
+];
 
 const GRENADES: { id: GrenadeType; name: string; desc: string }[] = [
   { id: 'frag', name: 'FRAG', desc: 'Lethal blast + shrapnel' },
@@ -50,6 +56,19 @@ export function Loadout({ onDeploy, onBack }: { onDeploy: () => void; onBack: ()
           >
             <span className="gname">{g.name}</span>
             <span className="gdesc">{g.desc}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="tagline" style={{ marginTop: 22 }}>Combat Zone</div>
+      <div className="map-row">
+        {MAPS.map((m) => (
+          <button
+            key={m.id}
+            className={`mcard${m.id === loadout.map ? ' active' : ''}`}
+            onClick={() => setLoadout({ map: m.id })}
+          >
+            {m.id === 'random' ? '🎲 ' : ''}{m.name}
           </button>
         ))}
       </div>

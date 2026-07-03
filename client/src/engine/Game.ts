@@ -38,6 +38,7 @@ export interface StartOptions {
   spawnPoints?: THREE.Vector3[];
   startWeapon?: number;         // roster index chosen in the loadout
   grenade?: string;             // grenade type chosen in the loadout
+  theme?: string;               // map chosen in the loadout ('random' → seed-derived)
 }
 
 interface Pickup { mesh: THREE.Mesh; kind: 'health' | 'ammo'; }
@@ -111,12 +112,16 @@ export class Game {
     // one of the five themes every new match.
     const seed = (opts.seed ?? Math.floor(Math.random() * 0xffffffff)) >>> 0;
     let theme = MAP_THEMES[seed % MAP_THEMES.length];
+    // Loadout map pick overrides the seed roll ('random' keeps it).
+    if (opts.theme && MAP_THEMES.includes(opts.theme as MapTheme)) theme = opts.theme as MapTheme;
     if ((import.meta as any).env?.DEV) {  // dev-only override for testing specific maps
       const o = localStorage.getItem('NS_THEME') as MapTheme | null;
       if (o && MAP_THEMES.includes(o)) theme = o;
     }
     this.arena = new Arena(this.engine, seed, theme);
-    setTimeout(() => this.toast(`MAP // ${MAP_NAMES[theme]}`), 600);
+    // Drives the pre-match horizontal map roulette in the HUD. The seed suffix
+    // makes the value unique per match so the roulette re-runs on repeat maps.
+    store.get().setHud({ mapName: `${MAP_NAMES[theme]}#${seed}` });
     this.player = new Player(this.engine.camera, this.arena.colliders, this.input);
     this.player.onFootstep = (metal) => this.audio.footstep(metal);
     // Spawn on the open plaza — NOT at the origin, which is inside the central
@@ -194,6 +199,7 @@ export class Game {
     if (opts.startWeapon != null) this.weapon.switchTo(opts.startWeapon);
     if (opts.grenade) this.grenadeType = opts.grenade;
     this.grenadeCount = 3; this.grenadeAiming = false;
+    store.get().setHud({ grenade: this.grenadeType, grenades: this.grenadeCount });
 
     // Reset vitals.
     this.health = this.maxHealth = 100;
@@ -543,8 +549,10 @@ export class Game {
           const o = new THREE.Vector3(); this.engine.camera.getWorldPosition(o);
           const d = new THREE.Vector3(); this.engine.camera.getWorldDirection(d);
           this.physics.throwGrenade(o.addScaledVector(d, 0.5), d, this.grenadeType as GrenadeType);
+          this.weapon.playThrow(this.grenadeType);          // visible throw-arm gesture
           this.audio.reload();
           this.toast(`${this.grenadeType.toUpperCase()} OUT · ${this.grenadeCount} LEFT`);
+          store.get().setHud({ grenades: this.grenadeCount });
         }
         this.grenadeAiming = false;
         if (this.arcLine) this.arcLine.visible = false;

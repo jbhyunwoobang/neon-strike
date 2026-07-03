@@ -3,6 +3,7 @@
     Tab scoreboard in multiplayer. */
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
+import { MapRoulette } from './MapRoulette';
 
 export function Hud() {
   const hud = useStore((s) => s.hud);
@@ -47,6 +48,7 @@ export function Hud() {
 
   return (
     <div className="hud">
+      <MapRoulette />
       {dmgOn && <div className="damage-flash" />}
       {flashOn && <div className="flash-white" />}
       {hud.scope && (
@@ -97,6 +99,10 @@ export function Hud() {
         <div className="wname">{hud.weapon}</div>
         <div className="ammo">{hud.ammo}<small>/{hud.reserve}</small></div>
         {hud.reloading ? <div className="reloading">RELOADING…</div> : <div className="mode">{hud.fireMode} · [R] RELOAD</div>}
+        <div className="grenade-chip">
+          <span className={`gr-ic ${hud.grenade}`} />
+          {hud.grenade.toUpperCase()} × {hud.grenades} <small>[G]</small>
+        </div>
       </div>
 
       {showScores && mp.connected && (
