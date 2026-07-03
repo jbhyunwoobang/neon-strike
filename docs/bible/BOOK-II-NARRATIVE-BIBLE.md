@@ -289,7 +289,7 @@ not know it is dying, the sigh of its capacitors venting is indistinguishable fr
 harvest, and the kill changes nothing at Edge — they book the loss and schedule a D-3.
 What changes is Asher, who says the truth aloud for the first time over the wreck.
 
-## IV.3 Director Halden Voss — *the present is what's kept alive*
+## IV.3 Director Coren Voss — *the present is what's kept alive*
 Edge's operational face (Book I §XIV.1). Sixty-four; grid engineer by training, the man who
 kept the hospitals lit through the 2064 Crash and has never let anyone forget it — least of
 all himself, because it is the one unambiguously good thing he has done and he knows it.
@@ -620,7 +620,7 @@ wheel. **Revelation:** Voss's terms expose the Grimwood/Edge split — Evergreen
 board-sanctioned at full scope; the founder has been building his ark inside their budget;
 the corporation would happily trade its god for its graph. **Hook:** the deep-pour
 elevator, Verge's lantern clipped to Asher's harness, descent. GN-6: one page, one panel —
-the elevator shaft in section, eleven kilometers of pour, one lamp.
+the elevator shaft in section, eleven hundred meters of pour, one lamp.
 
 ### Chapter 10 — "Evergreen"
 **Purpose:** the chamber; Grimwood; the governor. **Location:** the inverted Standing Hall
@@ -877,3 +877,7 @@ namings follow Book I App. A conventions. Amendments to this bible require a log
 in PROJECT_STATE.md.
 
 *— End of BOOK II, Edition One.*
+
+
+---
+*ERRATA (Edition One, applied per BOOK II.5 §21): ruling A — Enna Forester's death year corrected 2059→2053 (age-sixteen scene governs). Ruling B — Director Voss's first name is Coren. Ruling C — the Steelgate descent is 1,100 m of pour (grounded-tech law).*

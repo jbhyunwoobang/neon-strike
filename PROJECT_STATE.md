@@ -12,7 +12,7 @@ Every implementation response begins with the six-line status header drawn from 
 - **Roadmap:** BOOK I–IX (creative bibles) → Sprint 1–4 (implementation) → Vertical Slice.
 
 ## Current milestone
-**BOOK I — Universe Bible** (creative phase; no gameplay design, no code)
+**BOOK II.5 — Canon Lock** ✅ complete (creative phase; no gameplay design, no code)
 
 ## Completed milestones
 - Legacy arcade prototype (NEON STRIKE): engine, 5 maps, 10 weapons, wave AI, effects, audio — retained as tech foundation, multiplayer to be excised.
@@ -23,6 +23,9 @@ Every implementation response begins with the six-line status header drawn from 
   relationship map; Prologue + 3 acts + Epilogue across 11 chapters; opening 30 min;
   5-rung revelation ladder; the Governor ending; 8 cinematics; 7 GN sequences; boss
   staging; lore system; pacing/dialogue/motifs; 4 choice instruments; 7 sequel threads)
+- **BOOK II.5 — Canon Lock Document, Edition One** → `docs/bible/BOOK-II.5-CANON-LOCK.md`
+  (22 sections; single source of truth; 9 continuity rulings A–I applied as errata to
+  Books I & II inline + footers; every future document loads II.5 first)
 
 ## Outstanding blockers
 - None creative. (Implementation-phase blocker noted early: multiplayer excision touches App.tsx, Net.ts, server/ — scheduled for Sprint 1, not now.)
@@ -32,6 +35,7 @@ Every implementation response begins with the six-line status header drawn from 
 - `PROJECT_STATE.md` (this file)
 - `docs/bible/BOOK-I-UNIVERSE-BIBLE.md`
 - `docs/bible/BOOK-II-NARRATIVE-BIBLE.md`
+- `docs/bible/BOOK-II.5-CANON-LOCK.md`
 
 ## Files modified
 - (none — creative phase forbids code changes)
@@ -47,7 +51,7 @@ After Books: Sprint 1 = strip multiplayer + retitle + story scaffold.
   is love." Evergreen = a Returning performed on the biosphere; his models say the wild is
   doomed regardless (he is almost right).
 - Asher's secret: HIS 2068 permit report reclassified the crew → the D-2 engaged. Mara
-  always knew. Mother Enna's unattended Returning (2059) = load-bearing guilt. Daily one
+  always knew. Mother Enna's unattended Returning (2053; ruling II.5 §21-A) = load-bearing guilt. Daily one
   sentence to the windowsill seedling; first="Still here.", last=same words, new meaning.
 - Cast: Cmdr. Edda Harrow (mentor-antagonist, duel Ch.6, survives, plants in epilogue);
   Unit D-2/C3-0881 boss Ch.5; Voss = negotiation not boss (Ch.9 deal refused by walking);
@@ -64,7 +68,7 @@ After Books: Sprint 1 = strip multiplayer + retitle + story scaffold.
 
 ## Canon quick-reference (from BOOK I)
 - Era: 2071. Place: the Meridian Republic (fictionalized N. America).
-- The Verdance = plant bioenergy. The Converter = extraction tool. The Dimming = ecological silencing.
+- verdance (lowercase) = plant bioenergy. The Converter = extraction tool. The Quiet = ecological silencing (official term; "Dimming" deprecated per Book II.5 §21-E).
 - Edge Corp: energy monopoly, "Concession" biomes, Wardenry enforcers. Devastator series: siege automata.
 - Asher Forester: ex-Warden First Class, prosthetic left hand, defector. The Sowers: replanting resistance.
 - Dr. Beck Grimwood: inventor of the Grimwood Cycle (conversion), Edge's chief scientist.

@@ -702,7 +702,7 @@ bone-white, pale grey, safety amber; immaculate liveries; violence dressed as ma
 Architecture: Gravity Style at its coldest. Morality: institutional — no mustache-twirling;
 every Edge hand the player fights believes, correctly, that millions depend on the grid he
 defends. Leadership: a Board the public never sees; Grimwood as sanctified founder-mind;
-**Director Halden Voss** (new canon, Book II) as the operational face — the man who signs
+**Director Coren Voss** (new canon, Book II; first name per Book II.5 ruling 21-B) as the operational face — the man who signs
 what Grimwood dreams. Conflicts: yields vs. time, secrecy vs. scale, and one defected Warden
 who knows the corridor schedules.
 
@@ -812,3 +812,7 @@ interlude (story, loadout, Mulcher market) → the Battle of Steelgate vs. the D
 line growing through the final E.
 
 *— End of BOOK I, Edition One. Amendments require a logged entry in PROJECT_STATE.md.*
+
+
+---
+*ERRATA (Edition One, applied per BOOK II.5 §21): ruling B — Director Voss's first name standardized to Coren (collision with Halden's Ford, Book II). Ruling D — §IV.6's "misreads a work crew" is the official/settlement account; the truth (Asher's permit report) is established in Book II and governs omniscient voice.*
