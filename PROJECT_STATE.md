@@ -12,7 +12,9 @@ Every implementation response begins with the six-line status header drawn from 
 - **Roadmap:** BOOK I–IX (creative bibles) → Sprint 1–4 (implementation) → Vertical Slice.
 
 ## Current milestone
-**BOOK IV.5 — Art Direction Quick Reference** ✅ complete (creative phase; no code)
+**BOOK V — Experience Bible** ✅ complete (creative phase; no code)
+*(Numbering note: user's brief called this "book 4.5", but IV.5 = Art Quick Reference;
+filed as Book V and noted in the document header. Rename on user request.)*
 
 ## Completed milestones
 - Legacy arcade prototype (NEON STRIKE): engine, 5 maps, 10 weapons, wave AI, effects, audio — retained as tech foundation, multiplayer to be excised.
@@ -39,6 +41,11 @@ Every implementation response begins with the six-line status header drawn from 
   (the printable desk handbook: visual DNA page, Ten Absolute Rules, cheat sheets,
   district/prop tables, one-pagers, UE5 checklist, universal GPT-Image template,
   DO/DON'T, 25-question approval checklist; ZERO new canon — pure distillation)
+- **BOOK V — Experience Bible, Edition One** → `docs/bible/BOOK-V-EXPERIENCE-BIBLE.md`
+  (emotional blueprint: 16-station journey; pace map w/ breath audit (max 12 min combat,
+  14 recovery beats); Rules of curiosity/megalophobia/silence/discovery/combat/relief/
+  reveals/fear/hope/loss/bosses/cutscenes/GN/music; Top 25 unforgettable moments — all
+  locked beats; 16-attribute chapter table; psychological flowchart; QC)
 
 ## Outstanding blockers
 - None creative. (Implementation-phase blocker noted early: multiplayer excision touches App.tsx, Net.ts, server/ — scheduled for Sprint 1, not now.)
@@ -52,6 +59,7 @@ Every implementation response begins with the six-line status header drawn from 
 - `docs/bible/BOOK-III-CHARACTER-BIBLE.md`
 - `docs/bible/BOOK-IV-VISUAL-LANGUAGE-BIBLE.md`
 - `docs/bible/BOOK-IV.5-ART-QUICK-REFERENCE.md`
+- `docs/bible/BOOK-V-EXPERIENCE-BIBLE.md`
 
 ## Files modified
 - (none — creative phase forbids code changes)
