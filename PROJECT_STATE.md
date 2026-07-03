@@ -12,7 +12,7 @@ Every implementation response begins with the six-line status header drawn from 
 - **Roadmap:** BOOK I–IX (creative bibles) → Sprint 1–4 (implementation) → Vertical Slice.
 
 ## Current milestone
-**BOOK IV — Visual Language & Art Direction Bible** ✅ complete (creative phase; no code)
+**BOOK IV.5 — Art Direction Quick Reference** ✅ complete (creative phase; no code)
 
 ## Completed milestones
 - Legacy arcade prototype (NEON STRIKE): engine, 5 maps, 10 weapons, wave AI, effects, audio — retained as tech foundation, multiplayer to be excised.
@@ -35,6 +35,10 @@ Every implementation response begins with the six-line status header drawn from 
   (one-frame test: pour/ration/tenant; numeric Rule of Scale; architecture/material/
   color/lighting law; 11 chapter color scripts w/ hex anchors; 12 district kits; prop +
   GN + UI + camera + VFX language; 12-shot environment prompt suite; UE5 mapping; QC)
+- **BOOK IV.5 — Art Quick Reference, Edition One** → `docs/bible/BOOK-IV.5-ART-QUICK-REFERENCE.md`
+  (the printable desk handbook: visual DNA page, Ten Absolute Rules, cheat sheets,
+  district/prop tables, one-pagers, UE5 checklist, universal GPT-Image template,
+  DO/DON'T, 25-question approval checklist; ZERO new canon — pure distillation)
 
 ## Outstanding blockers
 - None creative. (Implementation-phase blocker noted early: multiplayer excision touches App.tsx, Net.ts, server/ — scheduled for Sprint 1, not now.)
@@ -47,6 +51,7 @@ Every implementation response begins with the six-line status header drawn from 
 - `docs/bible/BOOK-II.5-CANON-LOCK.md`
 - `docs/bible/BOOK-III-CHARACTER-BIBLE.md`
 - `docs/bible/BOOK-IV-VISUAL-LANGUAGE-BIBLE.md`
+- `docs/bible/BOOK-IV.5-ART-QUICK-REFERENCE.md`
 
 ## Files modified
 - (none — creative phase forbids code changes)
