@@ -66,6 +66,7 @@ export interface Hud {
   flash: number;           // timestamp of last flashbang (white)
   interactHint: string;    // e.g. "HOLD F — UPGRADE"
   toast: string;
+  scope: boolean;          // scoped weapon at full ADS → HUD draws the scope overlay
 }
 
 export interface Multiplayer {
@@ -111,7 +112,7 @@ function loadSettings(): Settings {
 const emptyHud: Hud = {
   health: 100, armor: 0, ammo: 30, reserve: 120, weapon: 'RIFLE', fireMode: 'AUTO',
   wave: 1, score: 0, kills: 0, enemiesLeft: 0, alive: true, reloading: false,
-  fps: 0, hitmarker: 0, headshot: false, damageFlash: 0, flash: 0, interactHint: '', toast: '',
+  fps: 0, hitmarker: 0, headshot: false, damageFlash: 0, flash: 0, interactHint: '', toast: '', scope: false,
 };
 
 interface State {

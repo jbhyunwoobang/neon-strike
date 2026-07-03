@@ -49,7 +49,21 @@ export function Hud() {
     <div className="hud">
       {dmgOn && <div className="damage-flash" />}
       {flashOn && <div className="flash-white" />}
-      <div className="crosshair"><span className="t u" /><span className="t d" /><span className="t l" /><span className="t r" /><i /></div>
+      {hud.scope && (
+        <div className="scope">
+          {/* black surround with a circular window, fine crosshair + mil-dots, range stamp */}
+          <div className="scope-ring" />
+          <div className="scope-cross h" /><div className="scope-cross v" />
+          {[-3, -2, -1, 1, 2, 3].map((m) => (
+            <span key={'h' + m} className="scope-mil" style={{ left: `calc(50% + ${m * 4.2}vmin)`, top: '50%' }} />
+          ))}
+          {[-3, -2, -1, 1, 2, 3].map((m) => (
+            <span key={'v' + m} className="scope-mil" style={{ top: `calc(50% + ${m * 4.2}vmin)`, left: '50%' }} />
+          ))}
+          <div className="scope-stamp">RX-9 // 6.0×<br />ZERO 100M</div>
+        </div>
+      )}
+      {!hud.scope && <div className="crosshair"><span className="t u" /><span className="t d" /><span className="t l" /><span className="t r" /><i /></div>}
       {hitOn && <div className="hitmarker" style={{ color: hud.headshot ? 'var(--warn)' : '#fff' }}><span className="h" /><span className="v" /></div>}
 
       {showFps && <div className="hud-fps">{hud.fps} FPS</div>}

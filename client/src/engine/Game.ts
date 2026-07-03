@@ -17,7 +17,7 @@ import * as THREE from 'three';
 import { Engine } from './Engine';
 import { Input } from './Input';
 import { Audio } from './Audio';
-import { Arena } from './Arena';
+import { Arena, MAP_THEMES, MAP_NAMES, type MapTheme } from './Arena';
 import { Player } from './Player';
 import { Effects } from './Effects';
 import { WeaponController, WEAPONS, type ShotResult } from './Weapons';
@@ -105,8 +105,18 @@ export class Game {
     this.audio.resume();
     store.get().resetHud();
 
-    // Build the world.
-    this.arena = new Arena(this.engine, opts.seed ?? 1);
+    // Build the world. Solo rolls a fresh seed each match; MP uses the server's
+    // shared seed so every client generates the identical map. The theme is
+    // derived from the seed → same map type for the whole room, and a random
+    // one of the five themes every new match.
+    const seed = (opts.seed ?? Math.floor(Math.random() * 0xffffffff)) >>> 0;
+    let theme = MAP_THEMES[seed % MAP_THEMES.length];
+    if ((import.meta as any).env?.DEV) {  // dev-only override for testing specific maps
+      const o = localStorage.getItem('NS_THEME') as MapTheme | null;
+      if (o && MAP_THEMES.includes(o)) theme = o;
+    }
+    this.arena = new Arena(this.engine, seed, theme);
+    setTimeout(() => this.toast(`MAP // ${MAP_NAMES[theme]}`), 600);
     this.player = new Player(this.engine.camera, this.arena.colliders, this.input);
     this.player.onFootstep = (metal) => this.audio.footstep(metal);
     // Spawn on the open plaza — NOT at the origin, which is inside the central
@@ -131,8 +141,8 @@ export class Game {
     // game runs regardless (graceful fallback to the custom Physics layer).
     this.rapier = new RapierWorld(this.engine.scene);
     if (this.mode === 'coop' && !this.net) {
-      let seed = (opts.seed ?? 1) >>> 0;
-      const rng = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+      let s = seed;
+      const rng = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
       this.rapier.init().then(() => {
         if (!this.running) return;
         this.rapier.addGround();
@@ -169,6 +179,7 @@ export class Game {
       onFire: (o, d, wi) => this.onFire(o, d, wi),
       setFov: (fov) => this.engine.setFov(fov),
       baseFov: store.get().settings.fov,
+      onScope: (on) => store.get().setHud({ scope: on }),
     });
 
     this.waves = new WaveManager({

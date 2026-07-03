@@ -437,3 +437,33 @@ input:focus-visible, .link:focus-visible {
 
 /* Kill-feed entries fade their background for legibility over bright scenes. */
 .killfeed .kf { backdrop-filter: blur(2px); }
+
+/* ------------------------------ scope overlay ----------------------------- */
+/* Full-screen sniper/DMR scope: black surround with a circular window (vmin so
+   it stays round on any aspect), hairline crosshair, mil-dots, glass tint. */
+.scope { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.scope::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 50% 50%,
+    rgba(20,28,26,0.06) 0 29vmin,          /* faint glass tint inside */
+    rgba(0,0,0,0.55) 30.5vmin,             /* soft shadowed rim */
+    #000 33vmin 100%);                     /* black scope body */
+}
+.scope-ring {
+  position: absolute; left: 50%; top: 50%; width: 61vmin; height: 61vmin;
+  transform: translate(-50%, -50%); border-radius: 50%;
+  border: 0.55vmin solid #060606;
+  box-shadow: inset 0 0 4vmin rgba(0,0,0,0.9), inset 0 0 1vmin rgba(120,160,150,0.18);
+}
+.scope-cross { position: absolute; background: rgba(10,12,11,0.92); }
+.scope-cross.h { left: calc(50% - 30vmin); top: calc(50% - 0.08vmin); width: 60vmin; height: 0.16vmin; }
+.scope-cross.v { top: calc(50% - 30vmin); left: calc(50% - 0.08vmin); height: 60vmin; width: 0.16vmin; }
+.scope-mil {
+  position: absolute; width: 0.5vmin; height: 0.5vmin; border-radius: 50%;
+  background: rgba(10,12,11,0.9); transform: translate(-50%, -50%);
+}
+.scope-stamp {
+  position: absolute; left: calc(50% + 16vmin); top: calc(50% + 20vmin);
+  font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.14em;
+  color: rgba(231,224,210,0.5); text-align: left; line-height: 1.5;
+}

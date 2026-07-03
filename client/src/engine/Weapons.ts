@@ -35,6 +35,7 @@ export interface WeaponDef {
   recoilV: number;      // upward kick per shot (rad)
   recoilH: number;      // horizontal kick per shot (rad)
   melee?: boolean;
+  scoped?: boolean;     // ADS goes to a full scope overlay (viewmodel hidden, real zoom)
 }
 
 /** The full loadout. Order defines slots 1..9. */
@@ -43,8 +44,8 @@ export const WEAPONS: WeaponDef[] = [
   { id: 'smg',     name: 'SMG-9',      caliber: 'light',   damage: 18, headMult: 1.8, rpm: 820, mag: 30, reserve: 210, reloadTime: 1.3, pellets: 1, spread: 0.028, adsSpreadMul: 0.45, modes: ['auto'], adsFov: 74, recoilV: 0.008, recoilH: 0.007 },
   { id: 'rifle',   name: 'AR-14',      caliber: 'light',   damage: 24, headMult: 2.0, rpm: 640, mag: 30, reserve: 210, reloadTime: 1.4, pellets: 1, spread: 0.016, adsSpreadMul: 0.35, modes: ['auto', 'semi'], adsFov: 70, recoilV: 0.011, recoilH: 0.006 },
   { id: 'battle',  name: 'BR-55',      caliber: 'heavy',   damage: 34, headMult: 2.0, rpm: 400, mag: 20, reserve: 140, reloadTime: 1.5, pellets: 1, spread: 0.013, adsSpreadMul: 0.3, modes: ['auto', 'burst'], adsFov: 66, recoilV: 0.015, recoilH: 0.007 },
-  { id: 'dmr',     name: 'DMR-7',      caliber: 'heavy',   damage: 55, headMult: 2.2, rpm: 260, mag: 12, reserve: 84,  reloadTime: 1.6, pellets: 1, spread: 0.008, adsSpreadMul: 0.2, modes: ['semi'], adsFov: 55, recoilV: 0.02, recoilH: 0.006 },
-  { id: 'sniper',  name: 'RAIL-X',     caliber: 'heavy',   damage: 130, headMult: 2.5, rpm: 45, mag: 5, reserve: 35,  reloadTime: 2.4, pellets: 1, spread: 0.004, adsSpreadMul: 0.05, modes: ['semi'], adsFov: 32, recoilV: 0.05, recoilH: 0.01 },
+  { id: 'dmr',     name: 'DMR-7',      caliber: 'heavy',   damage: 55, headMult: 2.2, rpm: 260, mag: 12, reserve: 84,  reloadTime: 1.6, pellets: 1, spread: 0.008, adsSpreadMul: 0.2, modes: ['semi'], adsFov: 38, recoilV: 0.02, recoilH: 0.006, scoped: true },
+  { id: 'sniper',  name: 'RAIL-X',     caliber: 'heavy',   damage: 130, headMult: 2.5, rpm: 45, mag: 5, reserve: 35,  reloadTime: 2.4, pellets: 1, spread: 0.004, adsSpreadMul: 0.05, modes: ['semi'], adsFov: 20, recoilV: 0.05, recoilH: 0.01, scoped: true },
   { id: 'lmg',     name: 'LMG-40',     caliber: 'heavy',   damage: 26, headMult: 1.7, rpm: 720, mag: 80, reserve: 320, reloadTime: 3.0, pellets: 1, spread: 0.03, adsSpreadMul: 0.5, modes: ['auto'], adsFov: 76, recoilV: 0.012, recoilH: 0.01 },
   { id: 'shotgun', name: 'BREACH-12',  caliber: 'shotgun', damage: 13, headMult: 1.5, rpm: 90, mag: 7, reserve: 49,  reloadTime: 2.2, pellets: 9, spread: 0.09, adsSpreadMul: 0.7, modes: ['semi'], adsFov: 78, recoilV: 0.03, recoilH: 0.012 },
   { id: 'knife',   name: 'COMBAT KNIFE', caliber: 'light', damage: 80, headMult: 1.2, rpm: 120, mag: 1, reserve: 0, reloadTime: 0, pellets: 1, spread: 0, adsSpreadMul: 1, modes: ['semi'], adsFov: 90, recoilV: 0, recoilH: 0, melee: true },
@@ -73,6 +74,35 @@ interface Ctx {
   onFire: (origin: THREE.Vector3, dir: THREE.Vector3, weaponIndex: number) => void;
   setFov: (fov: number) => void;
   baseFov: number;
+  /** Fired when a scoped weapon enters/leaves full scope view (HUD overlay). */
+  onScope?: (on: boolean) => void;
+}
+
+/* Rounded-corner, edge-beveled boxes replace raw BoxGeometry for every weapon
+ * part, so receivers/grips/stocks read as machined metal and moulded polymer
+ * instead of cubes. Geometries are cached by dimensions — weapon switches
+ * rebuild the viewmodel often and the extrusions are not free. */
+const rboxCache = new Map<string, THREE.BufferGeometry>();
+function roundedBox(w: number, h: number, dp: number): THREE.BufferGeometry {
+  const key = `${w}|${h}|${dp}`;
+  const hit = rboxCache.get(key);
+  if (hit) return hit;
+  const r = Math.min(w, h) * 0.28;                 // corner radius from the small side
+  const hw = Math.max(0.0001, w / 2 - r), hh = Math.max(0.0001, h / 2 - r);
+  const s = new THREE.Shape();
+  s.absarc(hw, hh, r, 0, Math.PI / 2, false);
+  s.absarc(-hw, hh, r, Math.PI / 2, Math.PI, false);
+  s.absarc(-hw, -hh, r, Math.PI, Math.PI * 1.5, false);
+  s.absarc(hw, -hh, r, Math.PI * 1.5, Math.PI * 2, false);
+  const bev = Math.min(dp * 0.22, r * 0.7, 0.008); // soften the extruded edges too
+  const depth = Math.max(0.002, dp - bev * 2);
+  const g = new THREE.ExtrudeGeometry(s, {
+    depth, bevelEnabled: true, bevelThickness: bev, bevelSize: bev * 0.9,
+    bevelSegments: 2, curveSegments: 5,
+  });
+  g.translate(0, 0, -depth / 2);
+  rboxCache.set(key, g);
+  return g;
 }
 
 export class WeaponController {
@@ -83,6 +113,7 @@ export class WeaponController {
   // Metallic view-model materials whose IBL reflection strength is animated.
   private metalMats: THREE.MeshStandardMaterial[] = [];
   private vmClock = 0;
+  private scopeOn = false;   // currently in full scope view (scoped weapon, ADS held)
 
   index = 2;                 // start on the AR
   ammo: number[] = [];
@@ -152,9 +183,11 @@ export class WeaponController {
       mesh.position.set(x, y, z); mesh.rotation.set(rx, ry, rz);
       this.modelParts.push(mesh); this.group.add(mesh); return mesh;
     };
-    const box = (w: number, h: number, dp: number, m: THREE.Material) => new THREE.Mesh(new THREE.BoxGeometry(w, h, dp), m);
-    const cyl = (rt: number, rb: number, len: number, m: THREE.Material, seg = 12) => new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, len, seg), m);
-    const bar = (rt: number, len: number, m: THREE.Material, z: number, y = 0.045, x = 0) => add(cyl(rt, rt, len, m, 12), x, y, z, Math.PI / 2, 0, 0); // barrel along -Z
+    // Curved construction kit: every "box" is a rounded, beveled solid and
+    // cylinders run high segment counts, so nothing on the gun reads as a cube.
+    const box = (w: number, h: number, dp: number, m: THREE.Material) => new THREE.Mesh(roundedBox(w, h, dp), m);
+    const cyl = (rt: number, rb: number, len: number, m: THREE.Material, seg = 24) => new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, len, Math.max(seg, 16)), m);
+    const bar = (rt: number, len: number, m: THREE.Material, z: number, y = 0.045, x = 0) => add(cyl(rt, rt, len, m, 24), x, y, z, Math.PI / 2, 0, 0); // barrel along -Z
     const scope = (z: number, tubeLen: number, tubeR: number) => {
       add(cyl(tubeR, tubeR, tubeLen, gun, 14), 0, 0.125, z, Math.PI / 2, 0, 0);
       add(cyl(tubeR * 1.3, tubeR * 1.3, 0.05, gun, 14), 0, 0.125, z - tubeLen / 2, Math.PI / 2, 0, 0);
@@ -412,6 +445,8 @@ export class WeaponController {
     this.cooldown = 0.25;
     this.raiseT = 0.4;        // play a raise-in animation
     this.inspectT = 0;
+    // Drop out of scope view so the raise-in shows the new weapon.
+    if (this.scopeOn) { this.scopeOn = false; this.group.visible = true; this.ctx.onScope?.(false); }
   }
 
   /** Manual inspect animation (rotate the weapon to examine it). */
@@ -472,6 +507,15 @@ export class WeaponController {
     this.adsBlend += ((this.aiming ? 1 : 0) - this.adsBlend) * Math.min(1, dt * 12);
     const fov = THREE.MathUtils.lerp(this.ctx.baseFov, this.def.adsFov, this.adsBlend);
     this.ctx.setFov(fov);
+
+    // Working scope: on scoped weapons, committing to ADS swaps the viewmodel
+    // for a full-screen scope overlay (drawn by the HUD) at true zoom FOV.
+    const scopeNow = !!this.def.scoped && this.adsBlend > 0.72 && !this.reloading;
+    if (scopeNow !== this.scopeOn) {
+      this.scopeOn = scopeNow;
+      this.group.visible = !scopeNow;
+      this.ctx.onScope?.(scopeNow);
+    }
 
     // Firing logic per mode.
     const d = this.def;
