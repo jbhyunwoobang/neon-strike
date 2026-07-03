@@ -174,6 +174,7 @@ export function App() {
   return (
     <>
       {inGame && <canvas key={canvasKey} ref={canvasRef} className="game" />}
+      {screen === 'playing' && <div className="game-grain" />}
 
       {screen === 'intro' && <Intro onEnter={() => store.get().setScreen('menu')} />}
 

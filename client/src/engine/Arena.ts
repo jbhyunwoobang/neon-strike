@@ -305,7 +305,7 @@ export class Arena {
     this.buildLighting(engine);
     if (cfg.ceiling === 'dome') this.buildCurvedChamber(shadow);
     else if (cfg.ceiling) this.buildCoffers(cfg.ceiling === 'coffers-warm', rng, shadow);
-    this.buildStaircases(rng);
+    this.buildUpperDecks(rng, shadow);
     this.buildDebris(rng);
     this.buildRooms(rng);
     if (cfg.carpet) this.buildCarpet(cfg.carpet, rng);
@@ -594,23 +594,93 @@ export class Arena {
     });
   }
 
-  /* Monumental staircases — vertical play + brutalist mass. Each step is a
-   * collider so the auto step-up lets you climb them. */
-  private buildStaircases(rng: () => number) {
-    const makeStair = (x: number, z: number, ry: number, steps: number, w: number) => {
-      const cos = Math.cos(ry), sin = Math.sin(ry);
+  /* Upper decks — the stairs now LEAD somewhere. Three elevated platforms
+   * (plus a third-floor tier and, when the layout allows, a connecting
+   * bridge) with railings and support columns. Everything is axis-aligned so
+   * the AABB colliders stay tight, and every step/slab/rail collides, so the
+   * whole structure is walkable: ground → stairs → deck → tier 2. */
+  private buildUpperDecks(rng: () => number, shadow: boolean) {
+    const mat = this.materials.concrete;
+    const railMat = new THREE.MeshStandardMaterial({ color: 0x4c4842, roughness: 0.6, metalness: 0.5 });
+
+    const solid = (w: number, h: number, d: number, x: number, y: number, z: number, m = mat) => {
+      const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+      b.position.set(x, y, z); b.castShadow = shadow; b.receiveShadow = true;
+      this.scene.add(b); this.raycastTargets.push(b);
+      this.colliders.push({ box: new THREE.Box3().setFromObject(b), material: 'concrete' });
+      return b;
+    };
+    /** Straight stair run rising `steps`·0.4 from baseY, marching along ±x/±z. */
+    const stair = (topX: number, topZ: number, dirX: number, dirZ: number, steps: number, w: number, baseY = 0) => {
       for (let i = 0; i < steps; i++) {
-        const s = new THREE.Mesh(new THREE.BoxGeometry(w, 0.4, 1.1), this.materials.concrete);
-        const lz = -i * 1.0;
-        s.position.set(x + sin * lz, 0.2 + i * 0.4, z + cos * lz);
-        s.rotation.y = ry; s.castShadow = true; s.receiveShadow = true;
-        this.scene.add(s);
-        this.colliders.push({ box: new THREE.Box3().setFromObject(s), material: 'concrete' });
+        // i=0 is the top step, adjacent to the deck edge; the run descends outward.
+        const sx = topX + dirX * i, sz = topZ + dirZ * i;
+        const sy = baseY + (steps - i) * 0.4 - 0.2;
+        solid(dirX !== 0 ? 1.05 : w, 0.4, dirZ !== 0 ? 1.05 : w, sx, sy, sz);
       }
     };
-    makeStair(-36, 34, 0.5, 11, 9);
-    makeStair(40, -30, -1.1, 13, 11);
-    makeStair(24, 44, Math.PI, 8, 7);
+    /** Platform slab + corner columns + railings (gaps left where stairs land). */
+    const deck = (cx: number, cz: number, w: number, d: number, topY: number, gaps: ('n' | 's' | 'e' | 'w')[]) => {
+      solid(w, 0.5, d, cx, topY - 0.25, cz);                              // slab
+      for (const [sx, sz] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) {      // support columns
+        const col = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.55, topY - 0.5, 10), mat);
+        col.position.set(cx + sx * (w / 2 - 0.8), (topY - 0.5) / 2, cz + sz * (d / 2 - 0.8));
+        col.castShadow = shadow; col.receiveShadow = true; this.scene.add(col);
+        this.colliders.push({ box: new THREE.Box3().setFromObject(col), material: 'concrete' });
+      }
+      // Railings per edge — split around a 3.4-wide gap when a stair lands there.
+      const rail = (edge: 'n' | 's' | 'e' | 'w') => {
+        const gap = gaps.includes(edge) ? 3.4 : 0;
+        const horiz = edge === 'n' || edge === 's';
+        const len = horiz ? w : d;
+        const off = (edge === 'n' || edge === 'w') ? -1 : 1;
+        const seg = (start: number, sl: number) => {
+          if (sl < 0.6) return;
+          const mx = horiz ? cx - len / 2 + start + sl / 2 : cx + off * (w / 2 - 0.08);
+          const mz = horiz ? cz + off * (d / 2 - 0.08) : cz - len / 2 + start + sl / 2;
+          solid(horiz ? sl : 0.16, 1.0, horiz ? 0.16 : sl, mx, topY + 0.5, mz, railMat);
+        };
+        if (gap) { seg(0, (len - gap) / 2); seg((len + gap) / 2, (len - gap) / 2); }
+        else seg(0, len);
+      };
+      (['n', 's', 'e', 'w'] as const).forEach(rail);
+    };
+
+    // Layout rotates with the seed so every map places its decks differently.
+    const a0 = rng() * Math.PI * 2;
+    const spot = (a: number, r: number): [number, number] =>
+      [Math.round(Math.cos(a) * r), Math.round(Math.sin(a) * r)];
+
+    // Deck A — the main overlook (2nd floor) with stairs on two sides and a
+    // 3rd-floor tier above one end reached by an on-deck stair.
+    const [ax, az] = spot(a0, 46);
+    deck(ax, az, 18, 12, 4.4, ['s', 'e']);
+    stair(ax, az + 6.6, 0, 1, 11, 3.2);              // up from the south
+    stair(ax + 9.6, az, 1, 0, 11, 3.2);              // up from the east
+    deck(ax - 5, az, 8, 12, 8.8, ['e']);             // tier 2 (3rd floor)
+    stair(ax - 0.4, az, 1, 0, 11, 3.2, 4.4);         // on-deck stair 2F → 3F
+
+    // Deck B — mid platform; bridges to Deck A when the two happen to align.
+    const [bx, bz] = spot(a0 + 2.1, 52);
+    deck(bx, bz, 14, 10, 4.4, ['n']);
+    stair(bx, bz - 5.6, 0, -1, 11, 3.2);
+    const dxAB = Math.abs(bx - ax), dzAB = Math.abs(bz - az);
+    if ((dxAB < 6 && dzAB < 46) || (dzAB < 6 && dxAB < 46)) {
+      // A clean straight span exists — deck-to-deck bridge with side rails.
+      const horiz = dzAB < 6;
+      const len = (horiz ? dxAB : dzAB) - 14;
+      const mx = horiz ? (ax + bx) / 2 : ax, mz = horiz ? az : (az + bz) / 2;
+      if (len > 4) {
+        solid(horiz ? len : 2.6, 0.4, horiz ? 2.6 : len, mx, 4.2, mz);
+        solid(horiz ? len : 0.14, 0.9, horiz ? 0.14 : len, mx, 4.85, mz - (horiz ? 1.25 : 0), railMat);
+        solid(horiz ? len : 0.14, 0.9, horiz ? 0.14 : len, mx, 4.85, mz + (horiz ? 1.25 : 0), railMat);
+      }
+    }
+
+    // Deck C — a small sniper perch on the third bearing.
+    const [px, pz] = spot(a0 + 4.3, 38);
+    deck(px, pz, 10, 8, 4.4, ['w']);
+    stair(px - 5.6, pz, -1, 0, 11, 3.2);
   }
 
   /* Scattered rubble + faceted rocks (instanced) for ground detail. */
