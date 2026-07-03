@@ -175,6 +175,7 @@ export class Game {
         if (this.rapier.ready) this.rapier.ragdoll(group, hitDir);   // real physics tumble
         else this.physics.ragdoll(group, hitDir);                    // scripted fallback flop
       },
+      onBomb: (from, to) => this.physics.lobBomb(from, to),          // bomber unit lob
     });
 
     this.weapon = new WeaponController({

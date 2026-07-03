@@ -245,12 +245,15 @@ export class Room {
     const r = this.rand();
     if (wave >= 10 && r < 0.12) type = 'heavy';
     else if (wave >= 7 && r < 0.28) type = 'drone';
-    else if (wave >= 4 && r < 0.5) type = 'soldier';
-    if (wave % 5 === 0 && this.enemies.length === 0 && this.pendingSpawns > 0) type = 'boss';
+    else if (wave >= 6 && r < 0.4) type = 'bomber';
+    else if (wave >= 4 && r < 0.56) type = this.rand() > 0.5 ? 'soldier' : 'wraith';
+    else if (wave >= 2 && r < 0.75 && this.rand() < 0.45) type = 'hound';
+    if (wave % 3 === 0 && this.enemies.length === 0 && this.pendingSpawns > 0) type = 'boss';
 
     // Type multipliers mirror the client table (grunt 100 / soldier 150 /
-    // drone 70 / heavy 450 / boss 2600 at wave 0).
-    const hpMul = type === 'boss' ? 26 : type === 'heavy' ? 4.5 : type === 'soldier' ? 1.5 : type === 'drone' ? 0.7 : 1;
+    // drone 70 / hound 80 / wraith 130 / bomber 120 / heavy 450 / boss 2600).
+    const hpMul = type === 'boss' ? 26 : type === 'heavy' ? 4.5 : type === 'soldier' ? 1.5
+      : type === 'drone' ? 0.7 : type === 'hound' ? 0.8 : type === 'wraith' ? 1.3 : type === 'bomber' ? 1.2 : 1;
     const maxHp = Math.round((COOP.enemyBaseHp + wave * COOP.enemyHpPerWave) * hpMul);
 
     const a = this.rand() * Math.PI * 2;

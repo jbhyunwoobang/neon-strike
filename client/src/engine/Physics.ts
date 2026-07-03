@@ -103,7 +103,23 @@ export class Physics {
     });
   }
 
-  private detonate(pos: THREE.Vector3, type: GrenadeType) {
+  /** Enemy bomber lob: an arcing bomb aimed at `to` with a softer blast than
+   *  a player frag. Reuses the grenade body sim (bounce + fuse). */
+  lobBomb(from: THREE.Vector3, to: THREE.Vector3) {
+    const m = new THREE.Mesh(this.grenadeGeo, new THREE.MeshStandardMaterial({ color: 0x8a3b26, roughness: 0.6, metalness: 0.5 }));
+    m.position.copy(from);
+    this.ctx.scene.add(m);
+    const glow = new THREE.PointLight(0xff5a24, 1.2, 4, 2); m.add(glow);
+    // Flat-solve the arc for a ~1.3s flight to the target.
+    const t = 1.3, g = 14;             // matches the body sim's gravity feel
+    const vel = new THREE.Vector3((to.x - from.x) / t, (to.y - from.y) / t + 0.5 * g * t, (to.z - from.z) / t);
+    this.bodies.push({
+      obj: m, vel, ang: new THREE.Vector3(5, 3, 7), life: t, max: t,
+      restitution: 0.3, groundY: 0.07, kind: 'grenade', data: { type: 'enemybomb' },
+    });
+  }
+
+  private detonate(pos: THREE.Vector3, type: GrenadeType | 'enemybomb') {
     if (type === 'frag') {
       this.ctx.effects.explosion(pos);
       this.ctx.audio.shoot('shotgun', 0); this.ctx.audio.impact('metal', 0);
@@ -121,6 +137,13 @@ export class Physics {
       this.ctx.effects.explosion(pos);
       this.ctx.onEmp(pos, 12);
       this.ctx.audio.hitmarker(true);
+    } else if (type === 'enemybomb') {
+      // Bomber shell: smaller radius + damage than a player frag.
+      this.ctx.effects.explosion(pos);
+      this.ctx.audio.impact('metal', 0);
+      this.ctx.onExplosion(pos, 6, 26);
+      this.shove(pos, 7, 8);
+      for (let i = 0; i < 5; i++) this.spawnDebris(pos);
     }
   }
 

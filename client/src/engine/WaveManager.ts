@@ -71,7 +71,7 @@ export class WaveManager {
 
   private beginWave(n: number) {
     this.wave = n;
-    const boss = n % 5 === 0;
+    const boss = n % 3 === 0;   // a boss leads every 3rd wave
     const base = 4 + Math.floor(n * 1.8);
     this.pending = boss ? base + 1 : base;
     this.spawnTimer = 0;
@@ -102,11 +102,18 @@ export class WaveManager {
   }
 
   private pickType(): string {
+    // Bestiary ramp: rushers first, then ranged, then the exotic units.
+    //   1     grunts          2+  + hounds (fast dogs)
+    //   4+    + soldiers/wraiths (ranged walkers + low-gliding shrouds)
+    //   6+    + bombers (arcing shells)
+    //   7+    + drones/shields   11+  + heavies
     const n = this.wave;
     const r = Math.random();
-    if (n >= 11 && r < 0.16) return 'heavy';
-    if (n >= 7 && r < 0.3) return Math.random() > 0.5 ? 'drone' : 'shield';
-    if (n >= 4 && r < 0.5) return 'soldier';
+    if (n >= 11 && r < 0.14) return 'heavy';
+    if (n >= 7 && r < 0.28) return Math.random() > 0.5 ? 'drone' : 'shield';
+    if (n >= 6 && r < 0.4) return 'bomber';
+    if (n >= 4 && r < 0.58) return Math.random() > 0.5 ? 'soldier' : 'wraith';
+    if (n >= 2 && r < 0.78) return Math.random() < 0.45 ? 'hound' : 'grunt';
     return 'grunt';
   }
 }
