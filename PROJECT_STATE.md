@@ -12,7 +12,9 @@ Every implementation response begins with the six-line status header drawn from 
 - **Roadmap:** BOOK I–IX (creative bibles) → Sprint 1–4 (implementation) → Vertical Slice.
 
 ## Current milestone
-**BOOK V.5 — Experience Quick Reference** ✅ complete (creative phase; no code)
+**BOOK 0 — Master Creative Bible** ✅ complete — THE DAY-1 HANDBOOK
+**⚠ LOADING ORDER FOR ALL FUTURE SESSIONS: Book 0 (identity) → Book II.5 Canon Lock
+(facts/rulings) → the domain book for the task. Book 0 is loaded FIRST, always.**
 *(Numbering note: user's brief called this "book 4.5", but IV.5 = Art Quick Reference;
 filed as Book V and noted in the document header. Rename on user request.)*
 
@@ -50,6 +52,11 @@ filed as Book V and noted in the document header. Rename on user request.)*
   (10-page desk handbook: Experience DNA + 100-word statement, Ten Commandments,
   emotional curve scan table, pacing guide, wonder/combat/exploration/cinematic
   one-pagers, 30-question checklist, the North Star manifesto; ZERO new canon)
+- **BOOK 0 — Master Creative Bible, Edition One** → `docs/bible/BOOK-0-MASTER-CREATIVE-BIBLE.md`
+  (the Day-1 handbook compressing Books I–V.5: Project DNA, Twenty Absolute Rules,
+  universe/story/character/visual/experience summaries, design philosophy, six role
+  handbooks, 100 DO/DON'Ts, 75-question quality checklist, the North Star + Creative
+  Manifesto; ZERO new canon; defines the loading order)
 
 ## Outstanding blockers
 - None creative. (Implementation-phase blocker noted early: multiplayer excision touches App.tsx, Net.ts, server/ — scheduled for Sprint 1, not now.)
@@ -65,6 +72,7 @@ filed as Book V and noted in the document header. Rename on user request.)*
 - `docs/bible/BOOK-IV.5-ART-QUICK-REFERENCE.md`
 - `docs/bible/BOOK-V-EXPERIENCE-BIBLE.md`
 - `docs/bible/BOOK-V.5-EXPERIENCE-QUICK-REFERENCE.md`
+- `docs/bible/BOOK-0-MASTER-CREATIVE-BIBLE.md`
 
 ## Files modified
 - (none — creative phase forbids code changes)
