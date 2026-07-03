@@ -12,7 +12,7 @@ Every implementation response begins with the six-line status header drawn from 
 - **Roadmap:** BOOK I–IX (creative bibles) → Sprint 1–4 (implementation) → Vertical Slice.
 
 ## Current milestone
-**BOOK V — Experience Bible** ✅ complete (creative phase; no code)
+**BOOK V.5 — Experience Quick Reference** ✅ complete (creative phase; no code)
 *(Numbering note: user's brief called this "book 4.5", but IV.5 = Art Quick Reference;
 filed as Book V and noted in the document header. Rename on user request.)*
 
@@ -46,6 +46,10 @@ filed as Book V and noted in the document header. Rename on user request.)*
   14 recovery beats); Rules of curiosity/megalophobia/silence/discovery/combat/relief/
   reveals/fear/hope/loss/bosses/cutscenes/GN/music; Top 25 unforgettable moments — all
   locked beats; 16-attribute chapter table; psychological flowchart; QC)
+- **BOOK V.5 — Experience Quick Reference, Edition One** → `docs/bible/BOOK-V.5-EXPERIENCE-QUICK-REFERENCE.md`
+  (10-page desk handbook: Experience DNA + 100-word statement, Ten Commandments,
+  emotional curve scan table, pacing guide, wonder/combat/exploration/cinematic
+  one-pagers, 30-question checklist, the North Star manifesto; ZERO new canon)
 
 ## Outstanding blockers
 - None creative. (Implementation-phase blocker noted early: multiplayer excision touches App.tsx, Net.ts, server/ — scheduled for Sprint 1, not now.)
@@ -60,6 +64,7 @@ filed as Book V and noted in the document header. Rename on user request.)*
 - `docs/bible/BOOK-IV-VISUAL-LANGUAGE-BIBLE.md`
 - `docs/bible/BOOK-IV.5-ART-QUICK-REFERENCE.md`
 - `docs/bible/BOOK-V-EXPERIENCE-BIBLE.md`
+- `docs/bible/BOOK-V.5-EXPERIENCE-QUICK-REFERENCE.md`
 
 ## Files modified
 - (none — creative phase forbids code changes)
