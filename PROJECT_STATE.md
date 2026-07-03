@@ -1,6 +1,8 @@
 # PROJECT STATE — ECHOES OF EDEN
-*Persistent state file. Read at the start of every session; update at the end of every session.
-Every implementation response begins with the six-line status header drawn from this file.*
+*Role since 2026-07-03 checkpoint: the CANON-AMENDMENT LEDGER + session-protocol source.
+Live production snapshot lives in `CURRENT_PROJECT_STATE.md`; onboarding in `README_FOR_CLAUDE.md`;
+history in `CHANGELOG.md`; backlog in `TODO.md`. The six-line status header draws from this file
++ CURRENT_PROJECT_STATE.md.*
 
 ---
 
