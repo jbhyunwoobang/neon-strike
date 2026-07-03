@@ -18,6 +18,11 @@ Every implementation response begins with the six-line status header drawn from 
 - Legacy arcade prototype (NEON STRIKE): engine, 5 maps, 10 weapons, wave AI, effects, audio — retained as tech foundation, multiplayer to be excised.
 - Reference board reviewed in full (synopsis, Dr. Beck Grimwood, the Converter, Devastator-3000, Bioharvest Vault, The Sowers, Battle of Steelgate, architecture/typography boards).
 - **BOOK I — Universe Bible, Edition One** written → `docs/bible/BOOK-I-UNIVERSE-BIBLE.md`
+- **BOOK II — Narrative Bible, Edition One** written → `docs/bible/BOOK-II-NARRATIVE-BIBLE.md`
+  (core conflict; Asher/Grimwood full sheets; 4 antagonist readings; 10 supporting cast;
+  relationship map; Prologue + 3 acts + Epilogue across 11 chapters; opening 30 min;
+  5-rung revelation ladder; the Governor ending; 8 cinematics; 7 GN sequences; boss
+  staging; lore system; pacing/dialogue/motifs; 4 choice instruments; 7 sequel threads)
 
 ## Outstanding blockers
 - None creative. (Implementation-phase blocker noted early: multiplayer excision touches App.tsx, Net.ts, server/ — scheduled for Sprint 1, not now.)
@@ -26,12 +31,36 @@ Every implementation response begins with the six-line status header drawn from 
 ## Files created
 - `PROJECT_STATE.md` (this file)
 - `docs/bible/BOOK-I-UNIVERSE-BIBLE.md`
+- `docs/bible/BOOK-II-NARRATIVE-BIBLE.md`
 
 ## Files modified
-- (none this session — creative phase forbids code changes)
+- (none — creative phase forbids code changes)
 
 ## Next implementation target
-**BOOK II — Characters & Factions Bible** (Asher Forester, Dr. Beck Grimwood, the Sowers cell, Edge Corp org chart, casting-sheet depth). After Books: Sprint 1 = strip multiplayer + retitle + story scaffold.
+**BOOK III** (user's roadmap next book — likely Gameplay/Combat Design Bible: wave-defense
+canon, Converter weapon modes, enemy roster re-skinned to Wardenry/Devastator fiction).
+After Books: Sprint 1 = strip multiplayer + retitle + story scaffold.
+
+## New canon added by BOOK II (binding)
+- Halden's Ford: shared hometown of Asher AND Grimwood (Concession III). Grimwood b.2001,
+  parish Reckoner's son; 2013 orchard blight = his wound; "planting is sentiment, banking
+  is love." Evergreen = a Returning performed on the biosphere; his models say the wild is
+  doomed regardless (he is almost right).
+- Asher's secret: HIS 2068 permit report reclassified the crew → the D-2 engaged. Mara
+  always knew. Mother Enna's unattended Returning (2059) = load-bearing guilt. Daily one
+  sentence to the windowsill seedling; first="Still here.", last=same words, new meaning.
+- Cast: Cmdr. Edda Harrow (mentor-antagonist, duel Ch.6, survives, plants in epilogue);
+  Unit D-2/C3-0881 boss Ch.5; Voss = negotiation not boss (Ch.9 deal refused by walking);
+  Coil/Kestrel Ondo (engineer, GN-artist thread); Dr. Ivy Lange (2053 memo); Reckoner Sela
+  Immen (dies Ch.6 fire; her Returning = funeral Asher attends); Tomas Verge (architect,
+  breach route, disappears); Registrar Oren Pale; Brack Meron (betrays Ch.6 for crew
+  amnesty; forgiveness = player choice); Cpl. Dez Arno (spared Ch.3, carries Sela out,
+  defects); Noor Estevez (Halden's Ford survivor); June (9, Driftmark, dawn-chorus
+  cartridge; owns the final shot).
+- Ending: Asher reverses the Evergreen governor — spends the banked reserve into the land;
+  one valley regrows; Cadence dark 11 hours (2 deaths, read into court record); Grimwood
+  audited & arrested by Voss's Edge, "One valley." / "One more than you were leaving.";
+  epilogue = the First Credit; final line "Still here."; one bird 60s into credits.
 
 ## Canon quick-reference (from BOOK I)
 - Era: 2071. Place: the Meridian Republic (fictionalized N. America).
