@@ -54,6 +54,7 @@ export class Engine {
   fps = 0;
   private fpsAccum = 0;
   private fpsFrames = 0;
+  private lowStreak = 0;   // seconds spent under the governor's FPS floor
 
   constructor(canvas: HTMLCanvasElement, quality: Quality, fov: number) {
     this.preset = PRESETS[quality];
@@ -95,8 +96,9 @@ export class Engine {
     // Ground-Truth Ambient Occlusion — the working AO route (the older SSAOPass
     // rendered black in this composer). GTAO runs a depth+normal prepass and
     // multiplies soft contact-shadow occlusion into the beauty pass, so pillar
-    // bases, crevices and stacked geometry gain grounded depth. Medium+ only.
-    if (this.preset.shadows) {
+    // bases, crevices and stacked geometry gain grounded depth. It costs a full
+    // depth+normal prepass, so it only runs on the high/ultra tiers.
+    if (this.preset.pixelRatio >= 1.5) {
       const gtao = new GTAOPass(this.scene, this.camera, window.innerWidth, window.innerHeight);
       gtao.output = GTAOPass.OUTPUT.Default;
       gtao.updateGtaoMaterial({
@@ -125,6 +127,10 @@ export class Engine {
   /** Directional shadow resolution for lights created by the arena. */
   get shadowMapSize() { return this.preset.shadowMap; }
   get shadowsEnabled() { return this.preset.shadows; }
+  /** Scale factor (0.3–1) the arena applies to particle/prop counts. */
+  get particleScale() { return this.preset.pixelRatio >= 2 ? 1 : this.preset.pixelRatio >= 1.5 ? 0.8 : this.preset.shadows ? 0.55 : 0.3; }
+  /** Planar-reflection texture size — sharper mirrors on high tiers. */
+  get reflectorRes() { return this.preset.pixelRatio >= 2 ? 1024 : this.preset.pixelRatio >= 1.5 ? 768 : 384; }
 
   onUpdate(fn: UpdateFn) { this.updates.push(fn); }
   offUpdate(fn: UpdateFn) { this.updates = this.updates.filter((u) => u !== fn); }
@@ -157,6 +163,25 @@ export class Engine {
     if (this.fpsAccum >= 0.5) {
       this.fps = Math.round(this.fpsFrames / this.fpsAccum);
       this.fpsAccum = 0; this.fpsFrames = 0;
+
+      // Perf governor: if the frame rate stays under ~38 FPS, shed the most
+      // expensive features one notch at a time (GTAO → bloom → pixel ratio)
+      // instead of letting the whole game chug. Never re-escalates mid-match.
+      if (this.fps > 5 && this.fps < 38) this.lowStreak += 0.5; else this.lowStreak = 0;
+      if (this.lowStreak >= 3) {
+        this.lowStreak = 0;
+        if (this.gtaoPass?.enabled) {
+          this.gtaoPass.enabled = false;
+          console.info('[perf] sustained low FPS — disabled ambient occlusion');
+        } else if (this.bloomPass.enabled) {
+          this.bloomPass.enabled = false;
+          console.info('[perf] sustained low FPS — disabled bloom');
+        } else if (this.renderer.getPixelRatio() > 1) {
+          this.renderer.setPixelRatio(1);
+          this.composer.setSize(window.innerWidth, window.innerHeight);
+          console.info('[perf] sustained low FPS — reduced render resolution');
+        }
+      }
     }
 
     for (const u of this.updates) u(dt, this.elapsed);

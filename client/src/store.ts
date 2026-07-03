@@ -213,4 +213,5 @@ export const useStore = create<State>((set, get) => ({
 export const store = {
   get: useStore.getState,
   set: useStore.setState,
+  sub: useStore.subscribe,
 };

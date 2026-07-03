@@ -41,6 +41,30 @@ export class Effects {
     g.fillStyle = grad; g.fillRect(0, 0, 64, 64);
     const tex = new THREE.CanvasTexture(c);
     this.flashSprite = new THREE.SpriteMaterial({ map: tex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false });
+
+    // Soft grey radial puff for smooth smoke (normal blending, feathered edge).
+    const sc = document.createElement('canvas');
+    sc.width = sc.height = 128;
+    const sg = sc.getContext('2d')!;
+    const sgrad = sg.createRadialGradient(64, 64, 0, 64, 64, 64);
+    sgrad.addColorStop(0, 'rgba(210,208,204,0.75)');
+    sgrad.addColorStop(0.45, 'rgba(170,168,164,0.45)');
+    sgrad.addColorStop(1, 'rgba(140,138,134,0)');
+    sg.fillStyle = sgrad; sg.fillRect(0, 0, 128, 128);
+    const stex = new THREE.CanvasTexture(sc);
+    this.smokeSprite = new THREE.SpriteMaterial({ map: stex, transparent: true, depthWrite: false });
+  }
+  private smokeSprite!: THREE.SpriteMaterial;
+
+  /** A soft eased smoke puff: rises, expands, fades with smoothstep. */
+  puff(pos: THREE.Vector3, scale = 1, tint = 0xffffff, life = 1.4) {
+    const spr = new THREE.Sprite(this.smokeSprite.clone());
+    spr.material.color.setHex(tint);
+    spr.position.copy(pos).add(new THREE.Vector3((Math.random() - 0.5) * 0.8, Math.random() * 0.4, (Math.random() - 0.5) * 0.8));
+    spr.scale.setScalar(0.5 * scale);
+    (spr as any).userData = { rise: 0.7 + Math.random() * 0.9, grow: (2.2 + Math.random() * 1.6) * scale, spin: (Math.random() - 0.5) * 0.8 };
+    this.scene.add(spr);
+    this.items.push({ obj: spr, life, max: life, kind: 'puff' });
   }
 
   /** A glowing beam from origin to end, fading fast. */
@@ -104,15 +128,29 @@ export class Effects {
     this.items.push({ obj: pts, life: 0.4, max: 0.4, kind: 'sparks' });
   }
 
-  /** Expanding blast + flash for grenades / explosive enemies. */
+  /** Layered blast: eased fireball core + expanding shockwave ring + a crown
+   *  of soft rising smoke puffs — smooth, not a popping sphere. */
   explosion(pos: THREE.Vector3) {
     const ball = new THREE.Mesh(
-      new THREE.SphereGeometry(0.5, 16, 16),
-      new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending }),
+      new THREE.SphereGeometry(0.5, 20, 20),
+      new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false }),
     );
     ball.position.copy(pos);
     this.scene.add(ball);
     this.items.push({ obj: ball, life: 0.5, max: 0.5, kind: 'explosion' });
+
+    // Ground shockwave ring racing outward.
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(0.8, 1.05, 40),
+      new THREE.MeshBasicMaterial({ color: 0xffc890, transparent: true, opacity: 0.75, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide }),
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(pos.x, Math.max(0.12, pos.y - 0.8), pos.z);
+    this.scene.add(ring);
+    this.items.push({ obj: ring, life: 0.45, max: 0.45, kind: 'shock' });
+
+    // Soft smoke crown that lingers after the flash dies.
+    for (let i = 0; i < 6; i++) this.puff(pos, 1.6, 0x9a9691, 1.3 + Math.random() * 0.7);
 
     const light = new THREE.PointLight(0xffa040, 30, 30, 2);
     light.position.copy(pos);
@@ -141,8 +179,23 @@ export class Effects {
         (pts.material as THREE.PointsMaterial).opacity = k;
       } else if (it.kind === 'explosion') {
         const m = it.obj as THREE.Mesh;
-        m.scale.setScalar(1 + (1 - k) * 6);
-        (m.material as THREE.MeshBasicMaterial).opacity = k * 0.9;
+        // Eased growth (fast then settling) + smoothstep fade — no linear pop.
+        const g2 = 1 - k, ease = 1 - (1 - g2) * (1 - g2);
+        m.scale.setScalar(1 + ease * 6.5);
+        (m.material as THREE.MeshBasicMaterial).opacity = k * k * (3 - 2 * k) * 0.9;
+      } else if (it.kind === 'shock') {
+        const m = it.obj as THREE.Mesh;
+        const g2 = 1 - k, ease = 1 - (1 - g2) * (1 - g2) * (1 - g2);
+        m.scale.setScalar(1 + ease * 11);
+        (m.material as THREE.MeshBasicMaterial).opacity = k * 0.75;
+      } else if (it.kind === 'puff') {
+        const spr = it.obj as THREE.Sprite;
+        const u = (spr as any).userData;
+        spr.position.y += u.rise * dt;
+        spr.material.rotation += u.spin * dt;
+        const g2 = 1 - k;
+        spr.scale.setScalar(0.5 + g2 * u.grow);            // steady expansion
+        spr.material.opacity = k * k * (3 - 2 * k) * 0.85; // smoothstep fade
       } else if (it.kind === 'flash') {
         (it.obj as THREE.Sprite).material.opacity = k;
       } else if (it.kind === 'light') {

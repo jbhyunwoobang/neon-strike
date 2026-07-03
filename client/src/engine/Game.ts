@@ -85,6 +85,7 @@ export class Game {
   // Multiplayer.
   private remotePlayers = new Map<string, { group: THREE.Group; body: THREE.Mesh; head: THREE.Mesh; tx: number; ty: number; tz: number; ry: number }>();
   private netSendTimer = 0;
+  private unsubVolume: (() => void) | null = null;
 
   private lastLook = { dx: 0, dy: 0 };
   private onGameOver?: (won: boolean) => void;
@@ -122,6 +123,11 @@ export class Game {
     // Drives the pre-match horizontal map roulette in the HUD. The seed suffix
     // makes the value unique per match so the roulette re-runs on repeat maps.
     store.get().setHud({ mapName: `${MAP_NAMES[theme]}#${seed}` });
+    // Per-map ambient soundscape + live volume (mute button / settings slider).
+    this.audio.ambient(theme);
+    this.unsubVolume = store.sub((s, prev) => {
+      if (s.settings.masterVolume !== prev.settings.masterVolume) this.audio.setVolume(s.settings.masterVolume);
+    });
     this.player = new Player(this.engine.camera, this.arena.colliders, this.input);
     this.player.onFootstep = (metal) => this.audio.footstep(metal);
     // Spawn on the open plaza — NOT at the origin, which is inside the central
@@ -259,6 +265,7 @@ export class Game {
 
   dispose() {
     this.running = false;
+    this.unsubVolume?.();
     this.engine.offUpdate(this.update);
     this.input.enabled = false;
     this.input.dispose();
@@ -542,6 +549,7 @@ export class Game {
       // Grenade: hold G to aim (shows predicted arc), release to throw.
       if (this.input.isDown('KeyG') && this.grenadeCount > 0 && !this.dead) {
         this.grenadeAiming = true;
+        this.weapon.setGrenadeHold(this.grenadeType, true);   // grenade drawn in the off-hand
         this.updateGrenadeArc();
       } else {
         if (this.grenadeAiming && this.grenadeCount > 0) {
@@ -550,11 +558,12 @@ export class Game {
           const d = new THREE.Vector3(); this.engine.camera.getWorldDirection(d);
           this.physics.throwGrenade(o.addScaledVector(d, 0.5), d, this.grenadeType as GrenadeType);
           this.weapon.playThrow(this.grenadeType);          // visible throw-arm gesture
-          this.audio.reload();
+          this.audio.throwSwish();
           this.toast(`${this.grenadeType.toUpperCase()} OUT · ${this.grenadeCount} LEFT`);
           store.get().setHud({ grenades: this.grenadeCount });
         }
         this.grenadeAiming = false;
+        this.weapon.setGrenadeHold(this.grenadeType, false);
         if (this.arcLine) this.arcLine.visible = false;
       }
 

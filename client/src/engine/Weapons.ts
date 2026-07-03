@@ -489,7 +489,29 @@ export class WeaponController {
 
   /** Play the grenade-throw gesture: gloved arm winds back low-right and whips
    *  forward overhead; the held grenade vanishes at the release point. */
+  /** While holding G to aim, the grenade sits visibly in the off-hand — the
+   *  grenade behaves like a drawn second weapon, not just an arc line. */
+  private nadeHeld = false;
+  setGrenadeHold(kind: string, held: boolean) {
+    if (held === this.nadeHeld) return;
+    this.nadeHeld = held;
+    if (held) {
+      this.ensureThrowArm(kind);
+      this.throwArm!.visible = true;
+      this.throwNade!.visible = true;
+    } else if (this.throwT <= 0 && this.throwArm) {
+      this.throwArm.visible = false;
+    }
+  }
+
   playThrow(kind: string) {
+    this.ensureThrowArm(kind);
+    this.throwNade!.visible = true;
+    this.throwArm!.visible = true;
+    this.throwT = this.throwDur;
+  }
+
+  private ensureThrowArm(kind: string) {
     if (!this.throwArm) {
       const g = new THREE.Group();
       const glove = new THREE.MeshStandardMaterial({ color: 0x4a3f33, roughness: 0.88, metalness: 0.05 });
@@ -511,9 +533,6 @@ export class WeaponController {
     // Colour the grenade by type so EMP/flash/smoke read differently in-hand.
     const col = kind === 'emp' ? 0x2a5a8a : kind === 'flash' ? 0x8a8a84 : kind === 'smoke' ? 0x4a4a4a : 0x3a4230;
     ((this.throwNade!.material) as THREE.MeshStandardMaterial).color.setHex(col);
-    this.throwNade!.visible = true;
-    this.throwArm.visible = true;
-    this.throwT = this.throwDur;
   }
 
   /** Hide/show the view-model (e.g. while driving a vehicle). */
@@ -535,8 +554,9 @@ export class WeaponController {
     if (this.reloading || d.melee || this.ammo[this.index] >= d.mag || this.reserve[this.index] <= 0) return;
     this.reloading = true;
     this.reloadT = d.reloadTime;
-    this.ctx.audio.reload();
+    this.reloadStage = 0;      // sounds fire at animation beats in update()
   }
+  private reloadStage = 0;     // 0 → mag out → 1 → mag in → 2 → bolt rack → 3
 
   /** Grant ammo (pickup). Returns true if any was needed. */
   addReserve(fraction = 1): boolean {
@@ -620,12 +640,26 @@ export class WeaponController {
     let rotY = this.sway.x;
     let rotZ = 0;
 
-    // Reload: the weapon dips and cants while the magazine is swapped.
+    // Reload: three readable beats — mag drops out (weapon cants hard right and
+    // dips), fresh mag slaps in (weapon rises with a jolt), bolt racks (sharp
+    // back-kick then snap forward). Foley fires exactly on each beat.
     if (this.reloading) {
       const p = 1 - this.reloadT / Math.max(0.01, this.def.reloadTime);
-      const dip = Math.sin(Math.min(1, p) * Math.PI);
-      target.y -= dip * 0.14; target.x -= dip * 0.05;
-      rotZ += dip * 0.55; rotX += dip * 0.32;
+      if (p >= 0.05 && this.reloadStage === 0) { this.reloadStage = 1; this.ctx.audio.magOut(); }
+      if (p >= 0.55 && this.reloadStage === 1) { this.reloadStage = 2; this.ctx.audio.magIn(); }
+      if (p >= 0.82 && this.reloadStage === 2) { this.reloadStage = 3; this.ctx.audio.boltRack(); }
+      if (p < 0.55) {                       // mag out: dip + hard cant, mag-hand pulls down
+        const q = Math.sin(Math.min(1, p / 0.55) * Math.PI);
+        target.y -= q * 0.16; target.x -= q * 0.06; target.z += q * 0.03;
+        rotZ += q * 0.7; rotX += q * 0.38;
+      } else if (p < 0.82) {                // mag in: rise back with a slap jolt
+        const q = 1 - (p - 0.55) / 0.27;
+        target.y -= q * 0.12; target.x -= q * 0.04;
+        rotZ += q * 0.5; rotX += q * 0.26 + Math.sin(p * 60) * 0.015 * q;
+      } else {                              // bolt rack: crisp rearward kick + snap
+        const q = Math.sin(((p - 0.82) / 0.18) * Math.PI);
+        target.z += q * 0.055; rotX -= q * 0.1;
+      }
     }
     // Raise-in on weapon switch.
     if (this.raiseT > 0) {
@@ -638,6 +672,15 @@ export class WeaponController {
       const env = Math.sin(Math.min(1, p) * Math.PI);
       target.z += env * 0.12; target.x -= env * 0.06; target.y += env * 0.02;
       rotY += env * 0.95; rotX += env * 0.35; rotZ += Math.sin(p * Math.PI * 2) * 0.16 * env;
+    }
+
+    // Held grenade (aiming with G): the off-hand raises the grenade into view
+    // at a ready pose with a slight breathing bob — a drawn second weapon.
+    if (this.nadeHeld && this.throwT <= 0 && this.throwArm) {
+      const bobT = Math.sin(this.vmClock * 2.2) * 0.008;
+      this.throwArm.position.set(0.24, -0.28 + bobT, -0.3);
+      this.throwArm.rotation.set(-0.65, -0.2, 0.22);
+      target.x -= 0.05; rotZ -= 0.12;   // gun eases aside while aiming the toss
     }
 
     // Grenade throw: the weapon dips left while the throw-arm winds back from

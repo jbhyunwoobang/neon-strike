@@ -70,6 +70,7 @@ export function Hud() {
 
       {showFps && <div className="hud-fps">{hud.fps} FPS</div>}
       {mp.connected && <div className="hud-ping">{mp.ping} ms</div>}
+      <SoundToggle />
 
       <div className="hud-top">
         <div className="stat score"><span className="k">SCORE</span><span className="v">{hud.score.toLocaleString()}</span></div>
@@ -120,5 +121,24 @@ export function Hud() {
         </div>
       )}
     </div>
+  );
+}
+
+/** Top-right sound on/off toggle — remembers the last non-zero volume. */
+function SoundToggle() {
+  const vol = useStore((s) => s.settings.masterVolume);
+  const update = useStore((s) => s.updateSettings);
+  const last = useRef(0.7);
+  return (
+    <button
+      className="sound-btn"
+      aria-label={vol > 0 ? 'Mute sound' : 'Unmute sound'}
+      onClick={() => {
+        if (vol > 0) { last.current = vol; update({ masterVolume: 0 }); }
+        else update({ masterVolume: last.current || 0.7 });
+      }}
+    >
+      {vol > 0 ? '🔊' : '🔇'}
+    </button>
   );
 }

@@ -241,6 +241,8 @@ export class Arena {
 
   private cfg: ThemeCfg;
   private scene: THREE.Scene;
+  private pScale = 1;      // particle/prop budget from the quality preset
+  private reflRes = 512;   // planar-reflection texture size
   private monolithRefs: { mesh: THREE.Object3D; baseY: number; phase: number }[] = [];
   private motes: THREE.Points | null = null;
   private keyLight: THREE.DirectionalLight;
@@ -262,6 +264,8 @@ export class Arena {
   constructor(engine: Engine, seed: number, theme: MapTheme = 'atrium') {
     this.scene = engine.scene;
     this.theme = theme;
+    this.pScale = engine.particleScale;
+    this.reflRes = engine.reflectorRes;
     const cfg = this.cfg = THEMES[theme];
     const rng = mulberry32(seed || 1);
 
@@ -613,7 +617,7 @@ export class Arena {
   private buildDebris(rng: () => number) {
     const rockGeo = new THREE.IcosahedronGeometry(0.6, 0);
     const rockMat = new THREE.MeshStandardMaterial({ color: 0x413c35, roughness: 0.96, metalness: 0.04, map: this.aggregateTex, flatShading: true });
-    const N = 70;
+    const N = Math.round(70 * this.pScale);
     const inst = new THREE.InstancedMesh(rockGeo, rockMat, N);
     const d = new THREE.Object3D();
     for (let i = 0; i < N; i++) {
@@ -827,17 +831,32 @@ export class Arena {
   /** A properly detailed tree: tapered leaning trunk, branch stubs, and a crown
    *  of 4–7 jittered icosahedron foliage clumps (two green tones) — or a conifer
    *  of stacked irregular cones. Far richer than the old single-cone trees. */
+  // Shared across every tree — one material instance per tone, not per clump.
+  private static treeMats: { barkC: THREE.Material; barkB: THREE.Material; leafC: THREE.Material; tones: THREE.Material[] } | null = null;
+  private static getTreeMats() {
+    if (!Arena.treeMats) {
+      Arena.treeMats = {
+        barkC: new THREE.MeshStandardMaterial({ color: 0x3a2c1c, roughness: 1 }),
+        barkB: new THREE.MeshStandardMaterial({ color: 0x4a3823, roughness: 1 }),
+        leafC: new THREE.MeshStandardMaterial({ color: 0x2c421e, roughness: 1, flatShading: true }),
+        tones: [0x3a5423, 0x2e451c, 0x49632c].map((c) => new THREE.MeshStandardMaterial({ color: c, roughness: 1, flatShading: true })),
+      };
+    }
+    return Arena.treeMats;
+  }
+
   private makeTree(rng: () => number, x: number, z: number, scale: number, shadow: boolean) {
     const g = new THREE.Group();
     const conifer = rng() < 0.45;
-    const barkMat = new THREE.MeshStandardMaterial({ color: conifer ? 0x3a2c1c : 0x4a3823, roughness: 1 });
+    const mats = Arena.getTreeMats();
+    const barkMat = conifer ? mats.barkC : mats.barkB;
     const th = (conifer ? 7 : 5.5) * scale * (0.8 + rng() * 0.5);
     const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.22 * scale, 0.55 * scale, th, 8), barkMat);
     trunk.position.y = th / 2; trunk.rotation.z = (rng() - 0.5) * 0.09;
     trunk.castShadow = shadow; g.add(trunk);
     if (conifer) {
       // Stacked irregular cones, each offset + squashed differently.
-      const leaf = new THREE.MeshStandardMaterial({ color: 0x2c421e, roughness: 1, flatShading: true });
+      const leaf = mats.leafC;
       const tiers = 4 + Math.floor(rng() * 3);
       for (let t = 0; t < tiers; t++) {
         const f = t / tiers;
@@ -849,13 +868,12 @@ export class Arena {
       }
     } else {
       // Broadleaf: a cluster of jittered rounded clumps in two greens.
-      const tones = [0x3a5423, 0x2e451c, 0x49632c];
       const clumps = 4 + Math.floor(rng() * 4);
       for (let cN = 0; cN < clumps; cN++) {
         const s = (1.3 + rng() * 1.4) * scale;
         const clump = new THREE.Mesh(
           new THREE.IcosahedronGeometry(s, 1),
-          new THREE.MeshStandardMaterial({ color: tones[Math.floor(rng() * tones.length)], roughness: 1, flatShading: true }),
+          mats.tones[Math.floor(rng() * mats.tones.length)],
         );
         const aa = rng() * Math.PI * 2, rr = rng() * 1.6 * scale;
         clump.position.set(Math.cos(aa) * rr, th * 0.86 + (rng() - 0.3) * 1.6 * scale, Math.sin(aa) * rr);
@@ -946,7 +964,7 @@ export class Arena {
   private buildWater() {
     // Inner reflective pool (Reflector — genuine reflections of the architecture).
     const pool = new Reflector(new THREE.PlaneGeometry(34, 22), {
-      textureWidth: 512, textureHeight: 512, color: 0x33454c,   // 512px keeps the extra pass cheap
+      textureWidth: this.reflRes, textureHeight: this.reflRes, color: 0x33454c, // sharper mirror on high tiers
     });
     pool.rotation.x = -Math.PI / 2; pool.position.set(-52, 0.06, 6);
     this.scene.add(pool); this.reflectors.push(pool);
@@ -997,7 +1015,7 @@ export class Arena {
   }
 
   private buildRain() {
-    const count = 4000;
+    const count = Math.round(4000 * this.pScale);
     const geo = new THREE.BufferGeometry();
     const pos = new Float32Array(count * 3);
     this.rainVel = new Float32Array(count);

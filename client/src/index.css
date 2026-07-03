@@ -526,3 +526,13 @@ input:focus-visible, .link:focus-visible {
   position: absolute; left: 50%; top: 0; bottom: 0; width: 2px; margin-left: -1px;
   background: linear-gradient(180deg, var(--ember), transparent 30% 70%, var(--ember));
 }
+
+/* ------------------------------- sound toggle ----------------------------- */
+.sound-btn {
+  position: absolute; top: 18px; right: 18px; z-index: 9;
+  pointer-events: auto; cursor: pointer;
+  background: rgba(12,10,8,0.55); border: 1px solid var(--line);
+  font-size: 15px; line-height: 1; padding: 8px 10px; border-radius: 2px;
+  filter: grayscale(0.35); transition: border-color 0.15s;
+}
+.sound-btn:hover { border-color: var(--ember); }

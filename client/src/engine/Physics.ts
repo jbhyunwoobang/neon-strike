@@ -156,15 +156,18 @@ export class Physics {
   }
 
   private spawnSmoke(pos: THREE.Vector3) {
-    const count = 26;
-    const geo = new THREE.BufferGeometry();
-    const arr = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) { arr[i * 3] = pos.x + (Math.random() - 0.5); arr[i * 3 + 1] = pos.y; arr[i * 3 + 2] = pos.z + (Math.random() - 0.5); }
-    geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
-    const pts = new THREE.Points(geo, new THREE.PointsMaterial({ color: 0x9a968c, size: 3.2, transparent: true, opacity: 0.5, depthWrite: false }));
-    (pts as any).userData = { grow: 0 };
-    this.ctx.scene.add(pts);
-    this.bodies.push({ obj: pts, vel: new THREE.Vector3(), ang: new THREE.Vector3(), life: 9, max: 9, restitution: 0, groundY: 0, kind: 'debris', mats: [pts.material as THREE.Material], data: { smoke: true, arr, count } });
+    // Layered soft sprite puffs instead of a blocky point cloud: an initial
+    // burst plus staggered follow-up billows, each eased + long-lived, so the
+    // screen fills with smooth rolling smoke that slowly thins out.
+    for (let i = 0; i < 10; i++) this.ctx.effects.puff(pos, 2.6, 0xaaa69e, 6 + Math.random() * 3);
+    for (let wave = 1; wave <= 4; wave++) {
+      setTimeout(() => {
+        for (let i = 0; i < 5; i++) {
+          const off = new THREE.Vector3((Math.random() - 0.5) * 3, Math.random() * 1.2, (Math.random() - 0.5) * 3);
+          this.ctx.effects.puff(off.add(pos), 2.2, 0xa29e96, 5 + Math.random() * 3);
+        }
+      }, wave * 450);
+    }
   }
 
   private shove(pos: THREE.Vector3, radius: number, force: number) {
