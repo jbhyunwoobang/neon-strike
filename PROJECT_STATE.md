@@ -12,7 +12,7 @@ Every implementation response begins with the six-line status header drawn from 
 - **Roadmap:** BOOK I–IX (creative bibles) → Sprint 1–4 (implementation) → Vertical Slice.
 
 ## Current milestone
-**BOOK II.5 — Canon Lock** ✅ complete (creative phase; no gameplay design, no code)
+**BOOK III — Character Bible** ✅ complete (creative phase; no gameplay design, no code)
 
 ## Completed milestones
 - Legacy arcade prototype (NEON STRIKE): engine, 5 maps, 10 weapons, wave AI, effects, audio — retained as tech foundation, multiplayer to be excised.
@@ -26,6 +26,11 @@ Every implementation response begins with the six-line status header drawn from 
 - **BOOK II.5 — Canon Lock Document, Edition One** → `docs/bible/BOOK-II.5-CANON-LOCK.md`
   (22 sections; single source of truth; 9 continuity rulings A–I applied as errata to
   Books I & II inline + footers; every future document loads II.5 first)
+- **BOOK III — Character Bible, Edition One** → `docs/bible/BOOK-III-CHARACTER-BIBLE.md`
+  (visual philosophy extracted from board; 14 full character entries incl. The Artist as
+  unresolved presence; relationship evolution by chapter; 4-stage visual evolutions;
+  per-character cinematic grammar; GPT-Image production prompt kit; QC pass 14/14
+  silhouettes distinct)
 
 ## Outstanding blockers
 - None creative. (Implementation-phase blocker noted early: multiplayer excision touches App.tsx, Net.ts, server/ — scheduled for Sprint 1, not now.)
@@ -36,6 +41,7 @@ Every implementation response begins with the six-line status header drawn from 
 - `docs/bible/BOOK-I-UNIVERSE-BIBLE.md`
 - `docs/bible/BOOK-II-NARRATIVE-BIBLE.md`
 - `docs/bible/BOOK-II.5-CANON-LOCK.md`
+- `docs/bible/BOOK-III-CHARACTER-BIBLE.md`
 
 ## Files modified
 - (none — creative phase forbids code changes)
@@ -44,6 +50,23 @@ Every implementation response begins with the six-line status header drawn from 
 **BOOK III** (user's roadmap next book — likely Gameplay/Combat Design Bible: wave-defense
 canon, Converter weapon modes, enemy roster re-skinned to Wardenry/Devastator fiction).
 After Books: Sprint 1 = strip multiplayer + retitle + story scaffold.
+
+## New canon added by BOOK III (binding; resolves Lock UNKNOWNs per rule 20.20)
+- Physical/identity stats for all 14 (heights, weights, birthdays, handedness incl.
+  Grimwood left-dominant pre-injury retrained right; Asher middle name Rell; Grimwood
+  full name Beckett Immanuel; Harrow = Edda Marisol; Voss = Coren Aldous, arcology-born,
+  estranged daughter in grid admin; Coil ambidextrous; Dez left-handed).
+- Asher: call sign "Amber Six"; b. 11 Mar 2037; anniversary prosthetic-cleaning ritual;
+  tinned peaches; will not read the GN. Grimwood: b. 2 Nov 2001; father's drafting pencil
+  stub; nightly 400-binomial recitation (record once in VO); has not stood in rain since
+  2013; arm cause stays UNKNOWN; arrest beat "thanks the officers."
+- Mara: estranged living wife Tomasin (4 unsent letters in nest). Brack: drowned brother
+  under the sold route (imply only). Dez: mother on Edge-leased oxygen (defection math).
+  Pale: filament pin worn upside down since year nine. June: surname stays UNKNOWN
+  (recommend never). The Artist: presence-not-person; three locked deflection lines;
+  four empty score bars before each GN = the signature.
+- Cinematic law: fixed lens kit 24/35/50/85; Grimwood = symmetry + lit-from-below +
+  heard-before-seen; Asher's camera may not dolly toward him before Ch.7.
 
 ## New canon added by BOOK II (binding)
 - Halden's Ford: shared hometown of Asher AND Grimwood (Concession III). Grimwood b.2001,
