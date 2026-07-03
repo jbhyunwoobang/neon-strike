@@ -14,7 +14,50 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { GTAOPass } from 'three/examples/jsm/postprocessing/GTAOPass.js';
+import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+
+/* Cinematic lens pass — the technical finishing stack Cyberpunk 2077 leans on
+ * (not its art direction): radial chromatic aberration at the frame edges,
+ * a teal-shadow / warm-highlight grade, animated fine film grain that hides
+ * banding in dark gradients, and a photographic vignette. One fullscreen pass. */
+const LensShader = {
+  uniforms: {
+    tDiffuse: { value: null as THREE.Texture | null },
+    uTime: { value: 0 },
+    uCA: { value: 0.0016 },      // chromatic aberration strength
+    uGrain: { value: 0.045 },    // film-grain amplitude
+    uVig: { value: 0.32 },       // vignette strength
+  },
+  vertexShader: /* glsl */`
+    varying vec2 vUv;
+    void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: /* glsl */`
+    uniform sampler2D tDiffuse;
+    uniform float uTime, uCA, uGrain, uVig;
+    varying vec2 vUv;
+    float hash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+    void main() {
+      vec2 c = vUv - 0.5;
+      float r = length(c);
+      // Chromatic aberration: R/B split grows quadratically toward the edges.
+      vec2 off = c * (uCA * r * r * 60.0);
+      float cr = texture2D(tDiffuse, vUv + off).r;
+      vec4 base = texture2D(tDiffuse, vUv);
+      float cb = texture2D(tDiffuse, vUv - off).b;
+      vec3 col = vec3(cr, base.g, cb);
+      // Teal-orange grade: cool the shadows, warm the highlights.
+      float l = dot(col, vec3(0.299, 0.587, 0.114));
+      col = mix(col, col * vec3(0.93, 1.02, 1.07), (1.0 - smoothstep(0.0, 0.5, l)) * 0.32);
+      col = mix(col, col * vec3(1.05, 1.0, 0.93), smoothstep(0.5, 1.0, l) * 0.26);
+      // Photographic vignette.
+      col *= 1.0 - uVig * smoothstep(0.35, 0.95, r);
+      // Animated fine grain, stronger in the darks where banding lives.
+      float g = hash(vUv * 1440.0 + fract(uTime) * 371.0) - 0.5;
+      col += g * uGrain * (0.35 + 0.65 * (1.0 - l));
+      gl_FragColor = vec4(col, base.a);
+    }`,
+};
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import type { Quality } from '../store';
 
@@ -43,6 +86,7 @@ export class Engine {
   readonly clock = new THREE.Clock();
 
   private bloomPass: UnrealBloomPass;
+  private lensPass!: ShaderPass;
   private gtaoPass?: GTAOPass;
   private updates: UpdateFn[] = [];
   private raf = 0;
@@ -119,6 +163,16 @@ export class Engine {
     );
     this.bloomPass.enabled = this.preset.bloom;
     this.composer.addPass(this.bloomPass);
+
+    // Cinematic lens (CA + grade + grain + vignette) — cheap on every tier;
+    // low quality gets a lighter touch so the aberration doesn't smear 1x DPR.
+    this.lensPass = new ShaderPass(LensShader);
+    if (!this.preset.bloom) {
+      this.lensPass.uniforms.uCA.value = 0.0008;
+      this.lensPass.uniforms.uGrain.value = 0.03;
+    }
+    this.composer.addPass(this.lensPass);
+
     this.composer.addPass(new OutputPass());
 
     window.addEventListener('resize', this.onResize);
@@ -184,6 +238,7 @@ export class Engine {
       }
     }
 
+    this.lensPass.uniforms.uTime.value = this.elapsed;  // animates the grain
     for (const u of this.updates) u(dt, this.elapsed);
     this.composer.render();
   };

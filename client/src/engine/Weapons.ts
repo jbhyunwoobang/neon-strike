@@ -38,17 +38,23 @@ export interface WeaponDef {
   scoped?: boolean;     // ADS goes to a full scope overlay (viewmodel hidden, real zoom)
 }
 
-/** The full loadout. Order defines slots 1..9. */
+/** The full loadout. Order defines slots 1..9.
+ *
+ * Damage is anchored to PUBG/Delta Force body-damage numbers against a
+ * 100 HP baseline target (grunt = unarmoured player): P92→35, UZI→26,
+ * M416→41, AUG-class→46, Mk14→61, AWM→105, M249→45, S1897→~21/pellet.
+ * Head multipliers follow the same convention (AR 2.3, SMG 1.8, bolt 2.5,
+ * shotgun 1.5). TTK vs a grunt: AR ≈0.28s, SMG ≈0.29s, LMG ≈0.25s. */
 export const WEAPONS: WeaponDef[] = [
-  { id: 'pistol',  name: 'SIDEARM',    caliber: 'light',   damage: 26, headMult: 2.0, rpm: 320, mag: 15, reserve: 90,  reloadTime: 1.0, pellets: 1, spread: 0.012, adsSpreadMul: 0.4, modes: ['semi'], adsFov: 68, recoilV: 0.010, recoilH: 0.006 },
-  { id: 'smg',     name: 'SMG-9',      caliber: 'light',   damage: 18, headMult: 1.8, rpm: 820, mag: 30, reserve: 210, reloadTime: 1.3, pellets: 1, spread: 0.028, adsSpreadMul: 0.45, modes: ['auto'], adsFov: 74, recoilV: 0.008, recoilH: 0.007 },
-  { id: 'rifle',   name: 'AR-14',      caliber: 'light',   damage: 24, headMult: 2.0, rpm: 640, mag: 30, reserve: 210, reloadTime: 1.4, pellets: 1, spread: 0.016, adsSpreadMul: 0.35, modes: ['auto', 'semi'], adsFov: 70, recoilV: 0.011, recoilH: 0.006 },
-  { id: 'battle',  name: 'BR-55',      caliber: 'heavy',   damage: 34, headMult: 2.0, rpm: 400, mag: 20, reserve: 140, reloadTime: 1.5, pellets: 1, spread: 0.013, adsSpreadMul: 0.3, modes: ['auto', 'burst'], adsFov: 66, recoilV: 0.015, recoilH: 0.007 },
-  { id: 'dmr',     name: 'DMR-7',      caliber: 'heavy',   damage: 55, headMult: 2.2, rpm: 260, mag: 12, reserve: 84,  reloadTime: 1.6, pellets: 1, spread: 0.008, adsSpreadMul: 0.2, modes: ['semi'], adsFov: 38, recoilV: 0.02, recoilH: 0.006, scoped: true },
-  { id: 'sniper',  name: 'RAIL-X',     caliber: 'heavy',   damage: 130, headMult: 2.5, rpm: 45, mag: 5, reserve: 35,  reloadTime: 2.4, pellets: 1, spread: 0.004, adsSpreadMul: 0.05, modes: ['semi'], adsFov: 20, recoilV: 0.05, recoilH: 0.01, scoped: true },
-  { id: 'lmg',     name: 'LMG-40',     caliber: 'heavy',   damage: 26, headMult: 1.7, rpm: 720, mag: 80, reserve: 320, reloadTime: 3.0, pellets: 1, spread: 0.03, adsSpreadMul: 0.5, modes: ['auto'], adsFov: 76, recoilV: 0.012, recoilH: 0.01 },
-  { id: 'shotgun', name: 'BREACH-12',  caliber: 'shotgun', damage: 13, headMult: 1.5, rpm: 90, mag: 7, reserve: 49,  reloadTime: 2.2, pellets: 9, spread: 0.09, adsSpreadMul: 0.7, modes: ['semi'], adsFov: 78, recoilV: 0.03, recoilH: 0.012 },
-  { id: 'knife',   name: 'COMBAT KNIFE', caliber: 'light', damage: 80, headMult: 1.2, rpm: 120, mag: 1, reserve: 0, reloadTime: 0, pellets: 1, spread: 0, adsSpreadMul: 1, modes: ['semi'], adsFov: 90, recoilV: 0, recoilH: 0, melee: true },
+  { id: 'pistol',  name: 'SIDEARM',    caliber: 'light',   damage: 35, headMult: 2.1, rpm: 320, mag: 15, reserve: 90,  reloadTime: 1.0, pellets: 1, spread: 0.012, adsSpreadMul: 0.4, modes: ['semi'], adsFov: 68, recoilV: 0.010, recoilH: 0.006 },
+  { id: 'smg',     name: 'SMG-9',      caliber: 'light',   damage: 26, headMult: 1.8, rpm: 820, mag: 30, reserve: 210, reloadTime: 1.3, pellets: 1, spread: 0.028, adsSpreadMul: 0.45, modes: ['auto'], adsFov: 74, recoilV: 0.008, recoilH: 0.007 },
+  { id: 'rifle',   name: 'AR-14',      caliber: 'light',   damage: 41, headMult: 2.3, rpm: 640, mag: 30, reserve: 210, reloadTime: 1.4, pellets: 1, spread: 0.016, adsSpreadMul: 0.35, modes: ['auto', 'semi'], adsFov: 70, recoilV: 0.011, recoilH: 0.006 },
+  { id: 'battle',  name: 'BR-55',      caliber: 'heavy',   damage: 46, headMult: 2.3, rpm: 400, mag: 20, reserve: 140, reloadTime: 1.5, pellets: 1, spread: 0.013, adsSpreadMul: 0.3, modes: ['auto', 'burst'], adsFov: 66, recoilV: 0.015, recoilH: 0.007 },
+  { id: 'dmr',     name: 'DMR-7',      caliber: 'heavy',   damage: 61, headMult: 2.3, rpm: 260, mag: 12, reserve: 84,  reloadTime: 1.6, pellets: 1, spread: 0.008, adsSpreadMul: 0.2, modes: ['semi'], adsFov: 38, recoilV: 0.02, recoilH: 0.006, scoped: true },
+  { id: 'sniper',  name: 'RAIL-X',     caliber: 'heavy',   damage: 105, headMult: 2.5, rpm: 45, mag: 5, reserve: 35,  reloadTime: 2.4, pellets: 1, spread: 0.004, adsSpreadMul: 0.05, modes: ['semi'], adsFov: 20, recoilV: 0.05, recoilH: 0.01, scoped: true },
+  { id: 'lmg',     name: 'LMG-40',     caliber: 'heavy',   damage: 45, headMult: 1.7, rpm: 720, mag: 80, reserve: 320, reloadTime: 3.0, pellets: 1, spread: 0.03, adsSpreadMul: 0.5, modes: ['auto'], adsFov: 76, recoilV: 0.012, recoilH: 0.01 },
+  { id: 'shotgun', name: 'BREACH-12',  caliber: 'shotgun', damage: 21, headMult: 1.5, rpm: 90, mag: 7, reserve: 49,  reloadTime: 2.2, pellets: 9, spread: 0.09, adsSpreadMul: 0.7, modes: ['semi'], adsFov: 78, recoilV: 0.03, recoilH: 0.012 },
+  { id: 'knife',   name: 'COMBAT KNIFE', caliber: 'light', damage: 60, headMult: 1.2, rpm: 120, mag: 1, reserve: 0, reloadTime: 0, pellets: 1, spread: 0, adsSpreadMul: 1, modes: ['semi'], adsFov: 90, recoilV: 0, recoilH: 0, melee: true },
 ];
 
 /** Result of a resolved shot, surfaced so Game can update score/net. */

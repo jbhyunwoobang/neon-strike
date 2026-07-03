@@ -29,13 +29,16 @@ export interface EnemyType {
 
 // Bone-white ceramic bodies with oxide-red / gunmetal accents — the biomech
 // homunculi of the mood board. Dim ember "eye" emission, never neon.
+// HP anchors a grunt at 100 = an unarmoured PUBG player, so the rebalanced
+// weapon table produces reference-game TTKs: AR = 3 body shots (~0.28s),
+// bolt sniper deletes a grunt, shield/heavy soak like armoured targets.
 export const ENEMY_TYPES: Record<string, EnemyType> = {
-  grunt:   { hp: 30,  speed: 3.6, damage: 9,  range: 2.2,  ranged: false, color: 0xccc3af, emissive: 0x5a1c0c, size: 1.0, score: 100, flying: false, fireInterval: 0.8 },
-  soldier: { hp: 55,  speed: 3.0, damage: 8,  range: 34,   ranged: true,  color: 0xa8482c, emissive: 0x2a0d05, size: 1.0, score: 150, flying: false, fireInterval: 1.1 },
-  shield:  { hp: 120, speed: 2.2, damage: 14, range: 2.4,  ranged: false, color: 0x55635d, emissive: 0x141f1c, size: 1.15, score: 200, flying: false, fireInterval: 1.0 },
-  drone:   { hp: 35,  speed: 5.0, damage: 6,  range: 40,   ranged: true,  color: 0xb4ae9f, emissive: 0x4a1e0a, size: 0.7, score: 180, flying: true,  fireInterval: 1.3 },
-  heavy:   { hp: 220, speed: 1.7, damage: 18, range: 30,   ranged: true,  color: 0x5e1e1a, emissive: 0x1a0504, size: 1.7, score: 300, flying: false, fireInterval: 1.4 },
-  boss:    { hp: 1500, speed: 2.0, damage: 26, range: 42,  ranged: true,  color: 0xc2a44e, emissive: 0x2a1d07, size: 3.0, score: 2000, flying: false, fireInterval: 0.7 },
+  grunt:   { hp: 100, speed: 3.6, damage: 12, range: 2.2,  ranged: false, color: 0xccc3af, emissive: 0x5a1c0c, size: 1.0, score: 100, flying: false, fireInterval: 0.8 },
+  soldier: { hp: 150, speed: 3.0, damage: 11, range: 34,   ranged: true,  color: 0xa8482c, emissive: 0x2a0d05, size: 1.0, score: 150, flying: false, fireInterval: 1.1 },
+  shield:  { hp: 280, speed: 2.2, damage: 16, range: 2.4,  ranged: false, color: 0x55635d, emissive: 0x141f1c, size: 1.15, score: 200, flying: false, fireInterval: 1.0 },
+  drone:   { hp: 70,  speed: 5.0, damage: 8,  range: 40,   ranged: true,  color: 0xb4ae9f, emissive: 0x4a1e0a, size: 0.7, score: 180, flying: true,  fireInterval: 1.3 },
+  heavy:   { hp: 450, speed: 1.7, damage: 22, range: 30,   ranged: true,  color: 0x5e1e1a, emissive: 0x1a0504, size: 1.7, score: 300, flying: false, fireInterval: 1.4 },
+  boss:    { hp: 2600, speed: 2.0, damage: 30, range: 42,  ranged: true,  color: 0xc2a44e, emissive: 0x2a1d07, size: 3.0, score: 2000, flying: false, fireInterval: 0.7 },
 };
 
 interface Ctx {

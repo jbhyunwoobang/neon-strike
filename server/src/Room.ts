@@ -30,10 +30,10 @@ const COOP = {
   perWave: 2,
   spawnRadius: 90,
   arenaHalf: 96,
-  enemyBaseHp: 30,
-  enemyHpPerWave: 6,
+  enemyBaseHp: 100,   // grunt = unarmoured-player baseline (matches client)
+  enemyHpPerWave: 12,
   enemySpeed: 3.2,
-  enemyDamage: 10,
+  enemyDamage: 12,
   attackRange: 2.4,
   attackCooldown: 1.0,
 };
@@ -248,7 +248,9 @@ export class Room {
     else if (wave >= 4 && r < 0.5) type = 'soldier';
     if (wave % 5 === 0 && this.enemies.length === 0 && this.pendingSpawns > 0) type = 'boss';
 
-    const hpMul = type === 'boss' ? 12 : type === 'heavy' ? 4 : type === 'soldier' ? 1.6 : 1;
+    // Type multipliers mirror the client table (grunt 100 / soldier 150 /
+    // drone 70 / heavy 450 / boss 2600 at wave 0).
+    const hpMul = type === 'boss' ? 26 : type === 'heavy' ? 4.5 : type === 'soldier' ? 1.5 : type === 'drone' ? 0.7 : 1;
     const maxHp = Math.round((COOP.enemyBaseHp + wave * COOP.enemyHpPerWave) * hpMul);
 
     const a = this.rand() * Math.PI * 2;
