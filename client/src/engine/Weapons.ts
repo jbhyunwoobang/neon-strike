@@ -35,7 +35,9 @@ export interface WeaponDef {
   recoilV: number;      // upward kick per shot (rad)
   recoilH: number;      // horizontal kick per shot (rad)
   melee?: boolean;
-  scoped?: boolean;     // ADS goes to a full scope overlay (viewmodel hidden, real zoom)
+  zoom?: number;        // optic magnification: ADS goes to a full scope overlay
+                        // at this zoom (2× standard optic … 6× sniper glass)
+  arrow?: boolean;      // fires arrows: bow foley + stuck-arrow impacts
 }
 
 /** The full loadout. Order defines slots 1..9.
@@ -48,12 +50,14 @@ export interface WeaponDef {
 export const WEAPONS: WeaponDef[] = [
   { id: 'pistol',  name: 'SIDEARM',    caliber: 'light',   damage: 35, headMult: 2.1, rpm: 320, mag: 15, reserve: 90,  reloadTime: 1.0, pellets: 1, spread: 0.012, adsSpreadMul: 0.4, modes: ['semi'], adsFov: 68, recoilV: 0.010, recoilH: 0.006 },
   { id: 'smg',     name: 'SMG-9',      caliber: 'light',   damage: 26, headMult: 1.8, rpm: 820, mag: 30, reserve: 210, reloadTime: 1.3, pellets: 1, spread: 0.028, adsSpreadMul: 0.45, modes: ['auto'], adsFov: 74, recoilV: 0.008, recoilH: 0.007 },
-  { id: 'rifle',   name: 'AR-14',      caliber: 'light',   damage: 41, headMult: 2.3, rpm: 640, mag: 30, reserve: 210, reloadTime: 1.4, pellets: 1, spread: 0.016, adsSpreadMul: 0.35, modes: ['auto', 'semi'], adsFov: 70, recoilV: 0.011, recoilH: 0.006 },
-  { id: 'battle',  name: 'BR-55',      caliber: 'heavy',   damage: 46, headMult: 2.3, rpm: 400, mag: 20, reserve: 140, reloadTime: 1.5, pellets: 1, spread: 0.013, adsSpreadMul: 0.3, modes: ['auto', 'burst'], adsFov: 66, recoilV: 0.015, recoilH: 0.007 },
-  { id: 'dmr',     name: 'DMR-7',      caliber: 'heavy',   damage: 61, headMult: 2.3, rpm: 260, mag: 12, reserve: 84,  reloadTime: 1.6, pellets: 1, spread: 0.008, adsSpreadMul: 0.2, modes: ['semi'], adsFov: 38, recoilV: 0.02, recoilH: 0.006, scoped: true },
-  { id: 'sniper',  name: 'RAIL-X',     caliber: 'heavy',   damage: 105, headMult: 2.5, rpm: 45, mag: 5, reserve: 35,  reloadTime: 2.4, pellets: 1, spread: 0.004, adsSpreadMul: 0.05, modes: ['semi'], adsFov: 20, recoilV: 0.05, recoilH: 0.01, scoped: true },
-  { id: 'lmg',     name: 'LMG-40',     caliber: 'heavy',   damage: 45, headMult: 1.7, rpm: 720, mag: 80, reserve: 320, reloadTime: 3.0, pellets: 1, spread: 0.03, adsSpreadMul: 0.5, modes: ['auto'], adsFov: 76, recoilV: 0.012, recoilH: 0.01 },
+  { id: 'rifle',   name: 'AR-14',      caliber: 'light',   damage: 41, headMult: 2.3, rpm: 640, mag: 30, reserve: 210, reloadTime: 1.4, pellets: 1, spread: 0.016, adsSpreadMul: 0.35, modes: ['auto', 'semi'], adsFov: 70, recoilV: 0.011, recoilH: 0.006, zoom: 2 },
+  { id: 'battle',  name: 'BR-55',      caliber: 'heavy',   damage: 46, headMult: 2.3, rpm: 400, mag: 20, reserve: 140, reloadTime: 1.5, pellets: 1, spread: 0.013, adsSpreadMul: 0.3, modes: ['auto', 'burst'], adsFov: 66, recoilV: 0.015, recoilH: 0.007, zoom: 2 },
+  { id: 'dmr',     name: 'DMR-7',      caliber: 'heavy',   damage: 61, headMult: 2.3, rpm: 260, mag: 12, reserve: 84,  reloadTime: 1.6, pellets: 1, spread: 0.008, adsSpreadMul: 0.2, modes: ['semi'], adsFov: 38, recoilV: 0.02, recoilH: 0.006, zoom: 4 },
+  { id: 'sniper',  name: 'RAIL-X',     caliber: 'heavy',   damage: 105, headMult: 2.5, rpm: 45, mag: 5, reserve: 35,  reloadTime: 2.4, pellets: 1, spread: 0.004, adsSpreadMul: 0.05, modes: ['semi'], adsFov: 20, recoilV: 0.05, recoilH: 0.01, zoom: 6 },
+  { id: 'lmg',     name: 'LMG-40',     caliber: 'heavy',   damage: 45, headMult: 1.7, rpm: 720, mag: 80, reserve: 320, reloadTime: 3.0, pellets: 1, spread: 0.03, adsSpreadMul: 0.5, modes: ['auto'], adsFov: 76, recoilV: 0.012, recoilH: 0.01, zoom: 2 },
   { id: 'shotgun', name: 'BREACH-12',  caliber: 'shotgun', damage: 21, headMult: 1.5, rpm: 90, mag: 7, reserve: 49,  reloadTime: 2.2, pellets: 9, spread: 0.09, adsSpreadMul: 0.7, modes: ['semi'], adsFov: 78, recoilV: 0.03, recoilH: 0.012 },
+  // Crossbow — PUBG crossbow anchor: 105 body, silent, one bolt then re-nock.
+  { id: 'bow',     name: 'ARBALEST',   caliber: 'heavy',   damage: 105, headMult: 2.5, rpm: 35, mag: 1, reserve: 24, reloadTime: 2.6, pellets: 1, spread: 0.003, adsSpreadMul: 0.15, modes: ['semi'], adsFov: 58, recoilV: 0.018, recoilH: 0.004, arrow: true },
   { id: 'knife',   name: 'COMBAT KNIFE', caliber: 'light', damage: 60, headMult: 1.2, rpm: 120, mag: 1, reserve: 0, reloadTime: 0, pellets: 1, spread: 0, adsSpreadMul: 1, modes: ['semi'], adsFov: 90, recoilV: 0, recoilH: 0, melee: true },
 ];
 
@@ -80,8 +84,8 @@ interface Ctx {
   onFire: (origin: THREE.Vector3, dir: THREE.Vector3, weaponIndex: number) => void;
   setFov: (fov: number) => void;
   baseFov: number;
-  /** Fired when a scoped weapon enters/leaves full scope view (HUD overlay). */
-  onScope?: (on: boolean) => void;
+  /** Fired when a zoomed optic enters/leaves full scope view (HUD overlay). */
+  onScope?: (on: boolean, zoom: number) => void;
 }
 
 /* Rounded-corner, edge-beveled boxes replace raw BoxGeometry for every weapon
@@ -386,6 +390,27 @@ export class WeaponController {
         magRibs(-0.001, -0.1, -0.04, 0.14, 0, 3);                        // ammo-box latch ribs
         fgZ = -0.5; break;
       }
+      case 'bow': { // ARBALEST — crossbow: swept limbs, string, bolt on the rail
+        add(box(0.05, 0.06, 0.34, poly), 0, 0.02, -0.05);                  // body / rail
+        add(box(0.05, 0.1, 0.16, poly), 0, 0.0, 0.2);                      // stock
+        add(box(0.045, 0.13, 0.055, poly), 0, -0.09, 0.08, 0.3, 0, 0);     // grip
+        tguard(-0.02, -0.02);
+        add(box(0.03, 0.05, 0.1, wood), 0, -0.04, -0.24);                  // foregrip block
+        // Swept-back limbs (angled) + curved tips.
+        for (const s of [-1, 1]) {
+          add(box(0.26, 0.016, 0.035, gun), s * 0.15, 0.03, -0.26, 0, s * 0.5, 0);
+          add(cyl(0.01, 0.01, 0.05, steel, 10), s * 0.27, 0.03, -0.2, 0.4, 0, s * 0.9); // tip cams
+        }
+        // String from tip to nock (two thin runs).
+        for (const s of [-1, 1]) add(cyl(0.0022, 0.0022, 0.3, steel, 6), s * 0.135, 0.03, -0.1, 0, s * 1.12, Math.PI / 2);
+        // Nocked bolt: shaft + head + fletching.
+        add(cyl(0.006, 0.006, 0.34, wood, 8), 0, 0.055, -0.12, Math.PI / 2, 0, 0);   // shaft
+        add(cyl(0.002, 0.01, 0.035, steel, 8), 0, 0.055, -0.31, -Math.PI / 2, 0, 0); // broadhead
+        for (let i = 0; i < 3; i++) add(box(0.003, 0.022, 0.04, emberDot), 0, 0.055, 0.03, 0, 0, (i / 3) * Math.PI); // fletching
+        add(box(0.008, 0.02, 0.012, gun), 0, 0.085, 0.02);                 // rear peep sight
+        add(box(0.006, 0.016, 0.008, gun), 0, 0.08, -0.3);                 // front post
+        fgZ = -0.24; break;
+      }
       case 'shotgun': { // BREACH-12 — pump, tube mag under barrel, wood furniture
         add(box(0.056, 0.075, 0.26, gun), 0, 0.03, -0.05);                 // receiver
         bar(0.02, 0.5, steel, -0.4, 0.075);                                // barrel (raised)
@@ -487,7 +512,7 @@ export class WeaponController {
     this.raiseT = 0.4;        // play a raise-in animation
     this.inspectT = 0;
     // Drop out of scope view so the raise-in shows the new weapon.
-    if (this.scopeOn) { this.scopeOn = false; this.group.visible = true; this.ctx.onScope?.(false); }
+    if (this.scopeOn) { this.scopeOn = false; this.group.visible = true; this.ctx.onScope?.(false, this.def.zoom ?? 2); }
   }
 
   /** Manual inspect animation (rotate the weapon to examine it). */
@@ -593,18 +618,23 @@ export class WeaponController {
       }
     }
 
-    // ADS fov blend.
+    // ADS fov blend. Optics with a zoom rating derive their true FOV from the
+    // magnification (fov = 2·atan(tan(base/2)/zoom)) — 2× standard glass,
+    // 4× marksman, 6× sniper — instead of a hand-tuned adsFov.
     this.adsBlend += ((this.aiming ? 1 : 0) - this.adsBlend) * Math.min(1, dt * 12);
-    const fov = THREE.MathUtils.lerp(this.ctx.baseFov, this.def.adsFov, this.adsBlend);
+    const adsTarget = this.def.zoom
+      ? THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(this.ctx.baseFov) / 2) / this.def.zoom))
+      : this.def.adsFov;
+    const fov = THREE.MathUtils.lerp(this.ctx.baseFov, adsTarget, this.adsBlend);
     this.ctx.setFov(fov);
 
-    // Working scope: on scoped weapons, committing to ADS swaps the viewmodel
+    // Working scope: on zoomed optics, committing to ADS swaps the viewmodel
     // for a full-screen scope overlay (drawn by the HUD) at true zoom FOV.
-    const scopeNow = !!this.def.scoped && this.adsBlend > 0.72 && !this.reloading;
+    const scopeNow = !!this.def.zoom && this.adsBlend > 0.72 && !this.reloading;
     if (scopeNow !== this.scopeOn) {
       this.scopeOn = scopeNow;
       this.group.visible = !scopeNow;
-      this.ctx.onScope?.(scopeNow);
+      this.ctx.onScope?.(scopeNow, this.def.zoom ?? 2);
     }
 
     // Firing logic per mode.
@@ -737,7 +767,7 @@ export class WeaponController {
     const spread = d.spread * (this.aiming ? d.adsSpreadMul : 1);
     const muzzlePos = origin.clone().addScaledVector(baseDir, 0.6).add(new THREE.Vector3(0, -0.05, 0));
     if (!d.melee) this.ctx.effects.muzzle(muzzlePos);
-    this.ctx.audio.shoot(d.caliber);
+    if (d.arrow) this.ctx.audio.bowShot(); else this.ctx.audio.shoot(d.caliber);
 
     const range = d.melee ? 2.4 : 400;
     for (let p = 0; p < d.pellets; p++) {
@@ -767,11 +797,14 @@ export class WeaponController {
     const hits = this.ray.intersectObjects(targets, false);
     const hit = hits[0];
 
+    const tracerColor = d.arrow ? 0xc9b07a : 0xfff2c0;   // arrows streak tan
     if (!hit) {
-      if (drawTracer && !d.melee) this.ctx.effects.tracer(muzzle, origin.clone().addScaledVector(dir, range));
+      if (drawTracer && !d.melee) this.ctx.effects.tracer(muzzle, origin.clone().addScaledVector(dir, range), tracerColor);
       return;
     }
-    if (drawTracer && !d.melee) this.ctx.effects.tracer(muzzle, hit.point);
+    if (drawTracer && !d.melee) this.ctx.effects.tracer(muzzle, hit.point, tracerColor);
+    // Arrows stay embedded in whatever they hit.
+    if (d.arrow) this.ctx.effects.arrow(hit.point, dir);
 
     const obj = hit.object;
     const enemyId: number | undefined = obj.userData.enemyId;

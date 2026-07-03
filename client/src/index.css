@@ -536,3 +536,12 @@ input:focus-visible, .link:focus-visible {
   filter: grayscale(0.35); transition: border-color 0.15s;
 }
 .sound-btn:hover { border-color: var(--ember); }
+
+/* ------------------------- in-game top-right controls ---------------------- */
+.hud-btns { position: absolute; top: 18px; right: 18px; z-index: 9; display: flex; gap: 8px; }
+.hud-btns .sound-btn { position: static; }
+.sound-btn.exit {
+  font-family: 'Barlow Condensed', sans-serif; font-size: 13px; letter-spacing: 0.18em;
+  color: var(--bone, #e7e0d2); filter: none;
+}
+.sound-btn.exit:hover { border-color: #b3402f; color: #b3402f; }

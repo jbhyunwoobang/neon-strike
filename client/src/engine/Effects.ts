@@ -56,6 +56,23 @@ export class Effects {
   }
   private smokeSprite!: THREE.SpriteMaterial;
 
+  /** A crossbow bolt left embedded in the surface it struck, fading slowly. */
+  arrow(point: THREE.Vector3, dir: THREE.Vector3) {
+    const g = new THREE.Group();
+    const shaftMat = new THREE.MeshStandardMaterial({ color: 0x6a5432, roughness: 0.9, transparent: true });
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.36, 8), shaftMat);
+    shaft.rotation.x = Math.PI / 2;
+    g.add(shaft);
+    const fl = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.03, 0.05, 1, 1, 1),
+      new THREE.MeshBasicMaterial({ color: 0xd9552b, transparent: true }));
+    fl.position.z = 0.16; g.add(fl);
+    // Sit the nock end proud of the surface, head buried along the flight dir.
+    g.position.copy(point).addScaledVector(dir, -0.13);
+    g.lookAt(point.clone().add(dir));
+    this.scene.add(g);
+    this.items.push({ obj: g, life: 14, max: 14, kind: 'arrow' });
+  }
+
   /** A soft eased smoke puff: rises, expands, fades with smoothstep. */
   puff(pos: THREE.Vector3, scale = 1, tint = 0xffffff, life = 1.4) {
     const spr = new THREE.Sprite(this.smokeSprite.clone());
@@ -196,6 +213,13 @@ export class Effects {
         const g2 = 1 - k;
         spr.scale.setScalar(0.5 + g2 * u.grow);            // steady expansion
         spr.material.opacity = k * k * (3 - 2 * k) * 0.85; // smoothstep fade
+      } else if (it.kind === 'arrow') {
+        if (k < 0.15) {   // hold solid for most of the life, then fade out
+          (it.obj as THREE.Group).traverse((o) => {
+            const m = (o as THREE.Mesh).material as THREE.Material | undefined;
+            if (m) (m as THREE.MeshBasicMaterial).opacity = k / 0.15;
+          });
+        }
       } else if (it.kind === 'flash') {
         (it.obj as THREE.Sprite).material.opacity = k;
       } else if (it.kind === 'light') {

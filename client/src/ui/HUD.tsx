@@ -62,7 +62,7 @@ export function Hud() {
           {[-3, -2, -1, 1, 2, 3].map((m) => (
             <span key={'v' + m} className="scope-mil" style={{ top: `calc(50% + ${m * 4.2}vmin)`, left: '50%' }} />
           ))}
-          <div className="scope-stamp">RX-9 // 6.0×<br />ZERO 100M</div>
+          <div className="scope-stamp">OPTIC // {hud.scopeZoom.toFixed(1)}×<br />ZERO {hud.scopeZoom >= 6 ? 300 : hud.scopeZoom >= 4 ? 200 : 100}M</div>
         </div>
       )}
       {!hud.scope && <div className="crosshair"><span className="t u" /><span className="t d" /><span className="t l" /><span className="t r" /><i /></div>}
@@ -124,21 +124,28 @@ export function Hud() {
   );
 }
 
-/** Top-right sound on/off toggle — remembers the last non-zero volume. */
+/** Top-right in-game controls: sound toggle, settings, exit. The settings and
+ *  exit buttons signal App via window events (the HUD has no game handle). */
 function SoundToggle() {
   const vol = useStore((s) => s.settings.masterVolume);
   const update = useStore((s) => s.updateSettings);
   const last = useRef(0.7);
   return (
-    <button
-      className="sound-btn"
-      aria-label={vol > 0 ? 'Mute sound' : 'Unmute sound'}
-      onClick={() => {
-        if (vol > 0) { last.current = vol; update({ masterVolume: 0 }); }
-        else update({ masterVolume: last.current || 0.7 });
-      }}
-    >
-      {vol > 0 ? '🔊' : '🔇'}
-    </button>
+    <div className="hud-btns">
+      <button
+        className="sound-btn"
+        aria-label={vol > 0 ? 'Mute sound' : 'Unmute sound'}
+        onClick={() => {
+          if (vol > 0) { last.current = vol; update({ masterVolume: 0 }); }
+          else update({ masterVolume: last.current || 0.7 });
+        }}
+      >
+        {vol > 0 ? '🔊' : '🔇'}
+      </button>
+      <button className="sound-btn" aria-label="Settings"
+        onClick={() => window.dispatchEvent(new CustomEvent('ns:settings'))}>⚙</button>
+      <button className="sound-btn exit" aria-label="Exit game"
+        onClick={() => window.dispatchEvent(new CustomEvent('ns:quit'))}>EXIT</button>
+    </div>
   );
 }

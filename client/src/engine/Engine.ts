@@ -25,8 +25,8 @@ const LensShader = {
   uniforms: {
     tDiffuse: { value: null as THREE.Texture | null },
     uTime: { value: 0 },
-    uCA: { value: 0.0016 },      // chromatic aberration strength
-    uGrain: { value: 0.045 },    // film-grain amplitude
+    uCA: { value: 0.001 },       // chromatic aberration strength
+    uGrain: { value: 0.036 },    // film-grain amplitude
     uVig: { value: 0.32 },       // vignette strength
   },
   vertexShader: /* glsl */`

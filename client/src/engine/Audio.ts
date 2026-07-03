@@ -103,6 +103,11 @@ export class Audio {
     this.noise(0.16, 0.16, 2600);
     setTimeout(() => this.noise(0.1, 0.08, 900), 60);
   }
+  bowShot() {          // crossbow: string thwip + limb slap — nearly silent
+    this.tone(220, 0.05, 'triangle', 0.14);
+    this.noise(0.07, 0.18, 1500);
+    setTimeout(() => this.noise(0.04, 0.08, 500), 40);
+  }
   impact(material: 'concrete' | 'metal' | 'glass', dist = 0) {
     if (material === 'glass') { this.noise(0.25, 0.3, 3200, dist); this.tone(2400, 0.08, 'triangle', 0.1, dist); }
     else if (material === 'metal') { this.tone(1400, 0.05, 'square', 0.12, dist); this.noise(0.05, 0.2, 2200, dist); }

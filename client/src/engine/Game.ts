@@ -190,7 +190,7 @@ export class Game {
       onFire: (o, d, wi) => this.onFire(o, d, wi),
       setFov: (fov) => this.engine.setFov(fov),
       baseFov: store.get().settings.fov,
-      onScope: (on) => store.get().setHud({ scope: on }),
+      onScope: (on, zoom) => store.get().setHud({ scope: on, scopeZoom: zoom }),
     });
 
     this.waves = new WaveManager({
@@ -541,6 +541,7 @@ export class Game {
       // ---- on-foot ----
       // Weapon switching (number keys + wheel).
       for (let i = 1; i <= 9; i++) if (this.input.isDown(`Digit${i}`)) this.weapon.switchTo(i - 1);
+      if (this.input.isDown('Digit0')) this.weapon.switchTo(9);   // slot 10 (knife)
       if (this.input.wheel !== 0) { this.weapon.cycle(this.input.wheel > 0 ? 1 : -1); this.input.wheel = 0; }
       if (this.input.wantReload) { this.weapon.reload(); this.input.wantReload = false; }
       if (this.input.isDown('KeyV')) this.weapon.toggleFireMode();

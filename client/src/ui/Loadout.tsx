@@ -17,6 +17,8 @@ const GRENADES: { id: GrenadeType; name: string; desc: string }[] = [
 ];
 
 const CAT: Record<string, string> = { light: 'CARBINE', heavy: 'BATTLE', shotgun: 'CQB' };
+const catOf = (w: { melee?: boolean; arrow?: boolean; caliber: string }) =>
+  w.melee ? 'MELEE' : w.arrow ? 'ARROW' : (CAT[w.caliber] ?? 'RIFLE');
 
 export function Loadout({ onDeploy, onBack }: { onDeploy: () => void; onBack: () => void }) {
   const loadout = useStore((s) => s.loadout);
@@ -29,7 +31,7 @@ export function Loadout({ onDeploy, onBack }: { onDeploy: () => void; onBack: ()
       <div className="tagline">Deployment Loadout</div>
       <div className="brand" style={{ fontSize: 40 }}>{sel.name}</div>
       <div className="hintline" style={{ textAlign: 'center', marginTop: -4 }}>
-        {sel.melee ? 'MELEE' : `${CAT[sel.caliber] ?? 'RIFLE'} · ${sel.damage} DMG · ${sel.rpm} RPM · ${sel.mag} RD · ${sel.modes.join('/').toUpperCase()}`}
+        {sel.melee ? 'MELEE' : `${catOf(sel)} · ${sel.damage} DMG · ${sel.rpm} RPM · ${sel.mag} RD · ${sel.zoom ? `${sel.zoom}× OPTIC · ` : ''}${sel.modes.join('/').toUpperCase()}`}
       </div>
 
       <div className="loadout-grid">
@@ -41,7 +43,7 @@ export function Loadout({ onDeploy, onBack }: { onDeploy: () => void; onBack: ()
           >
             <span className="wslot-n">{i + 1}</span>
             <span className="wname2">{w.name}</span>
-            <span className="wcat">{w.melee ? 'MELEE' : (CAT[w.caliber] ?? 'RIFLE')}</span>
+            <span className="wcat">{catOf(w)}</span>
           </button>
         ))}
       </div>

@@ -38,6 +38,9 @@ export function App() {
   const pendingRef = useRef<StartOptions | null>(null);
   const [canvasKey, setCanvasKey] = useState(0);
   const [paused, setPaused] = useState(false);
+  // In-match settings render as an overlay (switching screens would unmount
+  // the canvas and kill the running match).
+  const [showSettings, setShowSettings] = useState(false);
 
   // Deep-link support: /room/CODE prefills the join flow.
   const [deepCode] = useState(() => location.pathname.match(/\/room\/([A-Za-z0-9]+)/)?.[1]?.toUpperCase() ?? null);
@@ -149,8 +152,22 @@ export function App() {
     store.get().setScreen('menu');
   }
 
-  function resumeGame() { gameRef.current?.resume(); setPaused(false); }
-  function quitToMenu() { setPaused(false); backToMenu(); }
+  function resumeGame() { gameRef.current?.resume(); setPaused(false); setShowSettings(false); }
+  function quitToMenu() { setPaused(false); setShowSettings(false); backToMenu(); }
+
+  /* HUD top-right buttons (⚙ / EXIT) signal via window events — the HUD has
+   * no handle on the game instance. */
+  useEffect(() => {
+    const onSettings = () => {
+      if (store.get().screen !== 'playing') return;
+      gameRef.current?.pause(); setPaused(true); setShowSettings(true);
+    };
+    const onQuit = () => { if (store.get().screen === 'playing') quitToMenu(); };
+    window.addEventListener('ns:settings', onSettings);
+    window.addEventListener('ns:quit', onQuit);
+    return () => { window.removeEventListener('ns:settings', onSettings); window.removeEventListener('ns:quit', onQuit); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const inGame = screen === 'playing' || screen === 'gameover';
 
@@ -197,7 +214,8 @@ export function App() {
       {screen === 'playing' && (
         <>
           <Hud />
-          {paused && <PauseMenu onResume={resumeGame} onSettings={() => store.get().setScreen('settings')} onQuit={quitToMenu} />}
+          {paused && !showSettings && <PauseMenu onResume={resumeGame} onSettings={() => setShowSettings(true)} onQuit={quitToMenu} />}
+          {paused && showSettings && <SettingsScreen onBack={() => setShowSettings(false)} />}
         </>
       )}
 

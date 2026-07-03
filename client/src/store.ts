@@ -68,6 +68,7 @@ export interface Hud {
   interactHint: string;    // e.g. "HOLD F — UPGRADE"
   toast: string;
   scope: boolean;          // scoped weapon at full ADS → HUD draws the scope overlay
+  scopeZoom: number;       // magnification of the active optic (2/4/6×)
   grenade: string;         // equipped grenade type (frag/smoke/flash/emp)
   grenades: number;        // grenades remaining
   mapName: string;         // final map for this match (drives the pre-match roulette)
@@ -117,7 +118,7 @@ const emptyHud: Hud = {
   health: 100, armor: 0, ammo: 30, reserve: 120, weapon: 'RIFLE', fireMode: 'AUTO',
   wave: 1, score: 0, kills: 0, enemiesLeft: 0, alive: true, reloading: false,
   fps: 0, hitmarker: 0, headshot: false, damageFlash: 0, flash: 0, interactHint: '', toast: '', scope: false,
-  grenade: 'frag', grenades: 3, mapName: '',
+  grenade: 'frag', grenades: 3, mapName: '', scopeZoom: 2,
 };
 
 interface State {
