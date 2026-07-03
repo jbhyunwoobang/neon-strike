@@ -12,7 +12,7 @@ Every implementation response begins with the six-line status header drawn from 
 - **Roadmap:** BOOK I–IX (creative bibles) → Sprint 1–4 (implementation) → Vertical Slice.
 
 ## Current milestone
-**BOOK III — Character Bible** ✅ complete (creative phase; no gameplay design, no code)
+**BOOK IV — Visual Language & Art Direction Bible** ✅ complete (creative phase; no code)
 
 ## Completed milestones
 - Legacy arcade prototype (NEON STRIKE): engine, 5 maps, 10 weapons, wave AI, effects, audio — retained as tech foundation, multiplayer to be excised.
@@ -31,6 +31,10 @@ Every implementation response begins with the six-line status header drawn from 
   unresolved presence; relationship evolution by chapter; 4-stage visual evolutions;
   per-character cinematic grammar; GPT-Image production prompt kit; QC pass 14/14
   silhouettes distinct)
+- **BOOK IV — Visual Language Bible, Edition One** → `docs/bible/BOOK-IV-VISUAL-LANGUAGE-BIBLE.md`
+  (one-frame test: pour/ration/tenant; numeric Rule of Scale; architecture/material/
+  color/lighting law; 11 chapter color scripts w/ hex anchors; 12 district kits; prop +
+  GN + UI + camera + VFX language; 12-shot environment prompt suite; UE5 mapping; QC)
 
 ## Outstanding blockers
 - None creative. (Implementation-phase blocker noted early: multiplayer excision touches App.tsx, Net.ts, server/ — scheduled for Sprint 1, not now.)
@@ -42,6 +46,7 @@ Every implementation response begins with the six-line status header drawn from 
 - `docs/bible/BOOK-II-NARRATIVE-BIBLE.md`
 - `docs/bible/BOOK-II.5-CANON-LOCK.md`
 - `docs/bible/BOOK-III-CHARACTER-BIBLE.md`
+- `docs/bible/BOOK-IV-VISUAL-LANGUAGE-BIBLE.md`
 
 ## Files modified
 - (none — creative phase forbids code changes)
@@ -50,6 +55,20 @@ Every implementation response begins with the six-line status header drawn from 
 **BOOK III** (user's roadmap next book — likely Gameplay/Combat Design Bible: wave-defense
 canon, Converter weapon modes, enemy roster re-skinned to Wardenry/Devastator fiction).
 After Books: Sprint 1 = strip multiplayer + retitle + story scaffold.
+
+## New canon added by BOOK IV (binding; quantifies earlier law per rule 20.20)
+- Numeric scale canon (ceilings, doors incl. Ledger 2.0m humility door, pillar spacing
+  8–12m, canyon widths, insignificance cadence 1-per-10-min); pour-lift 2.4–3.6m strata.
+- Hex anchors for the locked palette (concrete #8A8A85 family, bone #E8E4DA, amber
+  #D9A226, sower-line green #4F7A3D, living green #3E6B34→#77A05B, alarm #A6231C, gold
+  #C2A44E); forbidden: saturated blue/cyan/purple, pure black/white. 11 chapter color
+  scripts (Furrows = deliberately WRONG cold green; Ch.6 fire = amber-only, no red;
+  Ch.10 reversal = the game's single chromatic flood; epilogue = inverted ration).
+- District kits (12), hero-prop list (Converter, Vault, Vault-lid pot, Sela's volume,
+  permit terminal, Verge's lantern, June's recorder, governor lever). UI = two diegetic
+  hands (Edge grotesk/amber vs Sower kit-bag paper); no minimap; save = pressed leaf;
+  HUD defects with the player at Ch.1. VFX: sigh = outward desaturation wave; memory
+  shaders forbidden. UE5 mapping is guidance; engine confirmed at Sprint 0.
 
 ## New canon added by BOOK III (binding; resolves Lock UNKNOWNs per rule 20.20)
 - Physical/identity stats for all 14 (heights, weights, birthdays, handedness incl.
