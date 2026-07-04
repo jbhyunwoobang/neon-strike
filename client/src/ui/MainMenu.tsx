@@ -3,11 +3,12 @@ import { useStore } from '../store';
 
 interface Props {
   onSolo: () => void;
+  onProving: () => void;
   onSettings: () => void;
   onCredits: () => void;
 }
 
-export function MainMenu({ onSolo, onSettings, onCredits }: Props) {
+export function MainMenu({ onSolo, onProving, onSettings, onCredits }: Props) {
   const best = useStore((s) => s.bestScore);
 
   return (
@@ -17,6 +18,7 @@ export function MainMenu({ onSolo, onSettings, onCredits }: Props) {
 
       <div className="menu-col">
         <button className="btn" onClick={onSolo}>Single Player</button>
+        <button className="btn ghost" onClick={onProving}>The Acre — Covenant Proving</button>
         <button className="btn ghost" onClick={onSettings}>Settings</button>
         <button className="btn ghost" onClick={onCredits}>Credits</button>
       </div>

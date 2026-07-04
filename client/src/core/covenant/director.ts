@@ -80,6 +80,10 @@ export class CovenantDirector {
 
   constructor(cfg: CovenantConfig) { this.cfg = cfg; }
 
+  get phaseNow(): CovenantPhase { return this.phase; }
+  get bankNow(): number { return this.bank; }
+  get bankTarget(): number { return this.cfg.bankTarget; }
+
   /** The plant/start hold-verb completed → the covenant begins. */
   start(): void {
     if (this.phase === 'idle') { this.phase = 'banking'; this.wave = -1; this.breathT = 0; }
@@ -101,6 +105,7 @@ export class CovenantDirector {
         );
 
         // Wave scheduling: next wave launches when the previous one resolves.
+        let justLaunched = false;
         if (!this.waveOutstanding && this.wave < this.cfg.waves.length - 1) {
           if (this.breathT > 0) {
             this.breathT -= dt;
@@ -108,9 +113,12 @@ export class CovenantDirector {
             this.wave += 1;
             spawns.push(...this.cfg.waves[this.wave].orders);
             this.waveOutstanding = true;
+            justLaunched = true;
           }
         }
-        if (this.waveOutstanding && field.hostilesAlive === 0) {
+        // A wave never resolves in the tick it launched: the field report
+        // predates these spawn orders (arrivals are staged, not instant).
+        if (this.waveOutstanding && !justLaunched && field.hostilesAlive === 0) {
           this.waveOutstanding = false;
           const next = this.cfg.waves[this.wave + 1];
           this.breathT = next ? next.breathS : 0;

@@ -37,6 +37,8 @@ describe('the covenant wave director (Book V §12 grammar, campaign v1)', () => 
   it('runs the full loop to WON: 3 waves, staged orders, bank complete', () => {
     const r = simulate({ killAfterS: 8, standInAcre: false });
     expect(r.last.phase).toBe('won');
+    // The win must WAIT for the fights: 3 kill-phases (~8 s) + 2 breaths (20 s).
+    expect(r.t).toBeGreaterThanOrEqual(3 * 8 + 2 * 20 - 1);
     // 2 + 2 + 4 orders across the three waves, all with route markers (staged LAW).
     expect(r.allSpawns.length).toBe(8);
     expect(r.allSpawns.every((s) => ['N', 'SW', 'SE'].includes(s.route))).toBe(true);
@@ -59,6 +61,20 @@ describe('the covenant wave director (Book V §12 grammar, campaign v1)', () => 
     const clean = simulate({ killAfterS: 6, standInAcre: false });
     const pressured = simulate({ killAfterS: 6, standInAcre: true });
     expect(pressured.t).toBeGreaterThan(clean.t); // the same fight takes longer banked-out
+  });
+
+  it('a wave never resolves in the tick it launches (arrivals are staged)', () => {
+    const d = new CovenantDirector(ACRE_PROVING);
+    d.start();
+    const first = d.tick(DT, { hostilesAlive: 0, hostilesInAcre: 0, saplingAlive: true });
+    expect(first.spawns.length).toBe(2);
+    // Next tick, still zero alive reported (units walking in): wave 2 must NOT launch.
+    const second = d.tick(DT, { hostilesAlive: 0, hostilesInAcre: 0, saplingAlive: true });
+    expect(second.spawns.length).toBe(0);
+    // Once a unit reports alive then dies, the wave resolves properly.
+    d.tick(DT, { hostilesAlive: 2, hostilesInAcre: 0, saplingAlive: true });
+    const after = d.tick(DT, { hostilesAlive: 0, hostilesInAcre: 0, saplingAlive: true });
+    expect(after.phase).toBe('banking');
   });
 
   it('LAW 4-D: the sapling死 fails the covenant, no matter the wave state', () => {

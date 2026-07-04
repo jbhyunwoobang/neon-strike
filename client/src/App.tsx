@@ -10,6 +10,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore, store } from './store';
 import { Game, type StartOptions } from './engine/Game';
+import { ProvingGame } from './content/proving/ProvingGame';
 import { Intro } from './ui/Intro';
 import { MainMenu } from './ui/MainMenu';
 import { Loadout } from './ui/Loadout';
@@ -23,7 +24,9 @@ export function App() {
   const screen = useStore((s) => s.screen);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const gameRef = useRef<Game | null>(null);
+  const provingRef = useRef<ProvingGame | null>(null);
   const pendingRef = useRef<StartOptions | null>(null);
+  const pendingProvingRef = useRef(false);
   const [canvasKey, setCanvasKey] = useState(0);
   const [paused, setPaused] = useState(false);
   // In-match settings render as an overlay (switching screens would unmount
@@ -32,20 +35,30 @@ export function App() {
 
   /* Start a match once the (re)mounted canvas is available. */
   useEffect(() => {
-    if (!pendingRef.current || !canvasRef.current) return;
+    if (!canvasRef.current) return;
+    if (pendingProvingRef.current) {
+      pendingProvingRef.current = false;
+      const pg = new ProvingGame(canvasRef.current);
+      provingRef.current = pg;
+      setPaused(false);
+      pg.start(() => backToMenu());
+      return;
+    }
+    if (!pendingRef.current) return;
     const opts = pendingRef.current;
     pendingRef.current = null;
     const game = new Game(canvasRef.current);
     gameRef.current = game;
     setPaused(false);
     game.start(opts, () => store.get().setScreen('gameover'));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canvasKey]);
 
   /* Esc toggles the pause menu during play. */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code === 'Escape' && store.get().screen === 'playing') {
-        const g = gameRef.current;
+        const g = gameRef.current ?? provingRef.current;
         if (!g) return;
         if (g.paused) { g.resume(); setPaused(false); }
         else { g.pause(); setPaused(true); }
@@ -56,10 +69,23 @@ export function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  function beginMatch(opts: StartOptions) {
+  function disposeAll() {
     gameRef.current?.dispose();
     gameRef.current = null;
+    provingRef.current?.dispose();
+    provingRef.current = null;
+  }
+
+  function beginMatch(opts: StartOptions) {
+    disposeAll();
     pendingRef.current = opts;
+    setCanvasKey((k) => k + 1);
+    store.get().setScreen('playing');
+  }
+
+  function startProving() {
+    disposeAll();
+    pendingProvingRef.current = true;
     setCanvasKey((k) => k + 1);
     store.get().setScreen('playing');
   }
@@ -70,12 +96,11 @@ export function App() {
   }
 
   function backToMenu() {
-    gameRef.current?.dispose();
-    gameRef.current = null;
+    disposeAll();
     store.get().setScreen('menu');
   }
 
-  function resumeGame() { gameRef.current?.resume(); setPaused(false); setShowSettings(false); }
+  function resumeGame() { (gameRef.current ?? provingRef.current)?.resume(); setPaused(false); setShowSettings(false); }
   function quitToMenu() { setPaused(false); setShowSettings(false); backToMenu(); }
 
   /* HUD top-right buttons (⚙ / EXIT) signal via window events — the HUD has
@@ -83,7 +108,7 @@ export function App() {
   useEffect(() => {
     const onSettings = () => {
       if (store.get().screen !== 'playing') return;
-      gameRef.current?.pause(); setPaused(true); setShowSettings(true);
+      (gameRef.current ?? provingRef.current)?.pause(); setPaused(true); setShowSettings(true);
     };
     const onQuit = () => { if (store.get().screen === 'playing') quitToMenu(); };
     window.addEventListener('ns:settings', onSettings);
@@ -104,6 +129,7 @@ export function App() {
       {screen === 'menu' && (
         <MainMenu
           onSolo={() => store.get().setScreen('loadout')}
+          onProving={startProving}
           onSettings={() => store.get().setScreen('settings')}
           onCredits={() => store.get().setScreen('credits')}
         />
