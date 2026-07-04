@@ -1,12 +1,12 @@
 # CURRENT PROJECT STATE — ECHOES OF EDEN
 *Live production snapshot. Always describes NOW. Updated at the end of every session.
 Division of labor: this file = production state; `PROJECT_STATE.md` = canon-amendment
-ledger + session-protocol source. Last updated: 2026-07-04 (Sprint 001 Phase A executed: gates closed, MP excised, CI live, link deploying SP build).*
+ledger + session-protocol source. Last updated: 2026-07-04 (Sprint 002 planned: the covenant grey-box; S001 Phases B–E carried as Block Z).*
 
 ## Phase & milestone
 - **Production phase:** Pre-production — creative foundation COMPLETE; checkpoint done;
   **awaiting user approval to begin implementation phase (Sprint 0).**
-- **Current milestone:** SPRINT 001 "Foundation" — **PHASE A DONE** (A1 gates closed: G0.1=PUBLIC by user ruling; A2 MP excision complete, −4,688 lines, tsc clean, solo smoke-tested; A4 CI green + Pages deploying the SP build to https://jbhyunwoobang.github.io/neon-strike/). Remaining: A5 folder restructure → Phases B–E; A3 (arcade quarantine) resequenced to land WITH E1 (graybox) so the link never goes empty.
+- **Current milestone:** SPRINT 002 PLANNED (`docs/sprints/SPRINT-002-PLAN.md` — "The Covenant Grey-Box": first complete gameplay loop; 158h nominal = Block Z carry-over (S001 Phases B–E) + weapon/damage/AI/covenant blocks). S001 status: Phase A DONE (gates, MP excision −4,688 lines, CI, link live at https://jbhyunwoobang.github.io/neon-strike/); Phases B–E execute as Block Z inside Sprint 002.
 - **Committed slice deliverable:** ~30-minute playable game via web link (user-directed 2026-07-04).
 - **Next recommended milestone:** SPRINT 0 — production setup (see TODO CRITICAL).
 
