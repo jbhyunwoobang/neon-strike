@@ -14,10 +14,11 @@
 import { create } from 'zustand';
 
 export type Screen =
-  | 'intro'
+  | 'intro' | 'sign' | 'foreword'
   | 'menu' | 'settings' | 'credits'
+  | 'registry' | 'cast'
   | 'loadout'
-  | 'playing' | 'gameover';
+  | 'playing' | 'gameover' | 'endcard';
 
 export type GrenadeType = 'frag' | 'smoke' | 'flash' | 'emp';
 

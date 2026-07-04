@@ -12,7 +12,7 @@ import { useStore, store } from './store';
 import { Game, type StartOptions } from './engine/Game';
 import { ProvingGame } from './content/proving/ProvingGame';
 import { FidelityScene } from './content/fidelity/FidelityScene';
-import { Intro } from './ui/Intro';
+import { TitleScreen, SignLedger, Foreword, Registry, CastPage, EndCard } from './ui/FrontEnd';
 import { MainMenu } from './ui/MainMenu';
 import { Loadout } from './ui/Loadout';
 import { SettingsScreen } from './ui/Settings';
@@ -56,7 +56,7 @@ export function App() {
       const pg = new ProvingGame(canvasRef.current);
       provingRef.current = pg;
       setPaused(false);
-      pg.start(() => backToMenu());
+      pg.start(() => { disposeAll(); store.get().setScreen('endcard'); });
       return;
     }
     if (!pendingRef.current) return;
@@ -105,6 +105,21 @@ export function App() {
     store.get().setScreen('playing');
   }
 
+  /** BEGIN: the foreword runs once, then the game. */
+  function beginFlow() {
+    let seen = false;
+    try { seen = localStorage.getItem('eoe:foreword:v1') === '1'; } catch { /* ok */ }
+    store.get().setScreen(seen ? 'playing' : 'foreword');
+    if (seen) startProving();
+  }
+
+  /** After the title: sign the ledger on first run. */
+  function afterTitle() {
+    let signed = false;
+    try { signed = localStorage.getItem('eoe:signed:v1') === '1'; } catch { /* ok */ }
+    store.get().setScreen(signed ? 'menu' : 'sign');
+  }
+
   function startSolo() {
     const { weapon, grenade, map } = store.get().loadout;
     beginMatch({ seed: (Math.random() * 1e9) | 0, startWeapon: weapon, grenade, theme: map });
@@ -143,12 +158,21 @@ export function App() {
       {inGame && <canvas key={canvasKey} ref={canvasRef} className="game" />}
       {screen === 'playing' && <div className="game-grain" />}
 
-      {screen === 'intro' && <Intro onEnter={() => store.get().setScreen('menu')} />}
+      {screen === 'intro' && <TitleScreen onEnter={afterTitle} />}
+      {screen === 'sign' && <SignLedger onDone={() => store.get().setScreen('menu')} />}
+      {screen === 'foreword' && <Foreword onDone={startProving} />}
+      {screen === 'registry' && <Registry onBack={() => store.get().setScreen('menu')} />}
+      {screen === 'cast' && <CastPage onBack={() => store.get().setScreen('menu')} />}
+      {screen === 'endcard' && (
+        <EndCard onReplay={startProving} onMenu={() => store.get().setScreen('menu')} />
+      )}
 
       {screen === 'menu' && (
         <MainMenu
           onSolo={() => store.get().setScreen('loadout')}
-          onProving={startProving}
+          onProving={beginFlow}
+          onRegistry={() => store.get().setScreen('registry')}
+          onCast={() => store.get().setScreen('cast')}
           onSettings={() => store.get().setScreen('settings')}
           onCredits={() => store.get().setScreen('credits')}
         />
