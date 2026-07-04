@@ -1,7 +1,7 @@
 # CURRENT PROJECT STATE — ECHOES OF EDEN
 *Live production snapshot. Always describes NOW. Updated at the end of every session.
 Division of labor: this file = production state; `PROJECT_STATE.md` = canon-amendment
-ledger + session-protocol source. Last updated: 2026-07-04 (Sprint 002 execution begun: systems core landed — locomotion/weapon/damage/AI/covenant, 47 tests green in CI).*
+ledger + session-protocol source. Last updated: 2026-07-04 (Sprint 002 execution begun: systems core landed — locomotion/weapon/damage/AI/covenant, 47 tests green in CI; Pages deploy transiently failing GitHub-side — link serves latest functional build; retry on next push).*
 
 ## Phase & milestone
 - **Production phase:** Pre-production — creative foundation COMPLETE; checkpoint done;
