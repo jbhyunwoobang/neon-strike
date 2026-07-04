@@ -1,7 +1,7 @@
 # CURRENT PROJECT STATE — ECHOES OF EDEN
 *Live production snapshot. Always describes NOW. Updated at the end of every session.
 Division of labor: this file = production state; `PROJECT_STATE.md` = canon-amendment
-ledger + session-protocol source. Last updated: 2026-07-04 (Sprint 002 planned: the covenant grey-box; S001 Phases B–E carried as Block Z).*
+ledger + session-protocol source. Last updated: 2026-07-04 (Review Board 001 filed: verdict = ship the slice, reframe to Act I; execution 2/10 today, vision 9/10).*
 
 ## Phase & milestone
 - **Production phase:** Pre-production — creative foundation COMPLETE; checkpoint done;
