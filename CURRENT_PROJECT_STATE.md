@@ -1,12 +1,12 @@
 # CURRENT PROJECT STATE — ECHOES OF EDEN
 *Live production snapshot. Always describes NOW. Updated at the end of every session.
 Division of labor: this file = production state; `PROJECT_STATE.md` = canon-amendment
-ledger + session-protocol source. Last updated: 2026-07-04 (Sprint 001 planned; lane ruling logged — web stack executes, UE5 mirrored).*
+ledger + session-protocol source. Last updated: 2026-07-04 (Sprint 001 Phase A executed: gates closed, MP excised, CI live, link deploying SP build).*
 
 ## Phase & milestone
 - **Production phase:** Pre-production — creative foundation COMPLETE; checkpoint done;
   **awaiting user approval to begin implementation phase (Sprint 0).**
-- **Current milestone:** SPRINT 001 PLANNED (`docs/sprints/SPRINT-001-PLAN.md`) · **Current sprint:** 001 "Foundation" — ready to execute; first gate = repo privacy decision (USER).
+- **Current milestone:** SPRINT 001 "Foundation" — **PHASE A DONE** (A1 gates closed: G0.1=PUBLIC by user ruling; A2 MP excision complete, −4,688 lines, tsc clean, solo smoke-tested; A4 CI green + Pages deploying the SP build to https://jbhyunwoobang.github.io/neon-strike/). Remaining: A5 folder restructure → Phases B–E; A3 (arcade quarantine) resequenced to land WITH E1 (graybox) so the link never goes empty.
 - **Committed slice deliverable:** ~30-minute playable game via web link (user-directed 2026-07-04).
 - **Next recommended milestone:** SPRINT 0 — production setup (see TODO CRITICAL).
 
