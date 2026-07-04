@@ -1,15 +1,13 @@
 /** HUD.tsx — In-game heads-up display. Subscribes to the engine-fed HUD store
     slice; all values update every frame from Game.update(). Also renders the
-    Tab scoreboard in multiplayer. */
+    (Single-player; the scoreboard/killfeed left with the multiplayer excision.) */
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { MapRoulette } from './MapRoulette';
 
 export function Hud() {
   const hud = useStore((s) => s.hud);
-  const mp = useStore((s) => s.mp);
   const showFps = useStore((s) => s.settings.showFps);
-  const killFeed = mp.killFeed;
 
   // Hitmarker / damage-flash driven by timestamps set by the engine.
   const [hitOn, setHitOn] = useState(false);
@@ -38,14 +36,6 @@ export function Hud() {
     }
   }, [hud.flash]);
 
-  const [showScores, setShowScores] = useState(false);
-  useEffect(() => {
-    const d = (e: KeyboardEvent) => { if (e.code === 'Tab') { e.preventDefault(); setShowScores(true); } };
-    const u = (e: KeyboardEvent) => { if (e.code === 'Tab') setShowScores(false); };
-    window.addEventListener('keydown', d); window.addEventListener('keyup', u);
-    return () => { window.removeEventListener('keydown', d); window.removeEventListener('keyup', u); };
-  }, []);
-
   return (
     <div className="hud">
       <MapRoulette />
@@ -69,7 +59,6 @@ export function Hud() {
       {hitOn && <div className="hitmarker" style={{ color: hud.headshot ? 'var(--warn)' : '#fff' }}><span className="h" /><span className="v" /></div>}
 
       {showFps && <div className="hud-fps">{hud.fps} FPS</div>}
-      {mp.connected && <div className="hud-ping">{mp.ping} ms</div>}
       <SoundToggle />
 
       <div className="hud-top">
@@ -79,11 +68,6 @@ export function Hud() {
       </div>
       {hud.enemiesLeft > 0 && <div className="wave-pill">{hud.enemiesLeft} HOSTILES</div>}
 
-      {killFeed.length > 0 && (
-        <div className="killfeed">
-          {killFeed.slice(-5).map((k, i) => <div className="kf" key={k.t + '' + i}>{k.text}</div>)}
-        </div>
-      )}
 
       {hud.toast && <div className="toast">{hud.toast}</div>}
 
@@ -106,20 +90,6 @@ export function Hud() {
         </div>
       </div>
 
-      {showScores && mp.connected && (
-        <div className="scoreboard">
-          <table>
-            <thead><tr><th>Operator</th><th>Kills</th><th>Deaths</th><th>Score</th><th>Ping</th></tr></thead>
-            <tbody>
-              {[...mp.players].sort((a, b) => b.score - a.score).map((p) => (
-                <tr key={p.id} style={{ color: p.id === mp.selfId ? 'var(--accent)' : undefined }}>
-                  <td>{p.name}</td><td>{p.kills}</td><td>{p.deaths}</td><td>{p.score}</td><td>{p.ping}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
     </div>
   );
 }

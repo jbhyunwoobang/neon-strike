@@ -4,7 +4,7 @@
  * A depth-layered composition in the mood-board style: eroded, weathered
  * monolith shards suspended in a cloud break, lit by a volumetric godray, with
  * atmospheric haze, drifting dust, a lone figure on a foreground ridge, and the
- * NEON STRIKE wordmark rendered with editorial registration detail.
+ * ECHOES OF EDEN wordmark rendered with editorial registration detail.
  *
  * Weathering + surface grain come from SVG filters (feTurbulence +
  * feDisplacementMap); depth comes from tint + blur (atmospheric perspective).
@@ -23,7 +23,7 @@ export function Intro({ onEnter }: { onEnter: () => void }) {
   }, [onEnter]);
 
   return (
-    <div className="intro" onClick={onEnter} role="button" tabIndex={0} aria-label="Enter NEON STRIKE">
+    <div className="intro" onClick={onEnter} role="button" tabIndex={0} aria-label="Enter ECHOES OF EDEN">
       {/* atmosphere */}
       <div className="intro-sky" />
       <div className="intro-cloud c1" />
@@ -167,8 +167,8 @@ export function Intro({ onEnter }: { onEnter: () => void }) {
       {/* wordmark */}
       <div className="intro-center">
         <div className="intro-kicker"><span>◦</span> SECTOR 13 · TRANSMISSION MMXCV <span>◦</span></div>
-        <h1 className="intro-wordmark"><span>NEON</span><span>STRIKE</span></h1>
-        <div className="intro-rule"><i /><em>MONOLITH</em><i /></div>
+        <h1 className="intro-wordmark"><span>ECHOES</span><span>OF EDEN</span></h1>
+        <div className="intro-rule"><i /><em>STILL HERE</em><i /></div>
 
         <button className="intro-cta" onClick={(e) => { e.stopPropagation(); onEnter(); }} aria-label="Enter">
           <span className="br tl" /><span className="br tr" /><span className="br bl" /><span className="br br2" />
@@ -186,7 +186,7 @@ export function Intro({ onEnter }: { onEnter: () => void }) {
         <span className="reg tl" /><span className="reg tr" /><span className="reg bl" /><span className="reg br" />
       </div>
       <div className="intro-meta ml">HDR.PSD // NS-051<br />RENDER · 4K · ACES</div>
-      <div className="intro-meta mr">FPS · CO-OP · PVP<br />SYSTEM ONLINE</div>
+      <div className="intro-meta mr">SINGLE PLAYER · STORY FPS<br />SYSTEM ONLINE</div>
       <div className="intro-lensvig" aria-hidden="true" />
     </div>
   );

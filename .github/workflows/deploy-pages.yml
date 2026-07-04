@@ -1,8 +1,7 @@
 name: Deploy client to GitHub Pages
 
-# Publishes the client bundle to GitHub Pages on every push to main, giving an
-# instant public link (single-player fully playable; multiplayer needs the
-# separate Socket.IO server — see docs/DEPLOYMENT.md for Vercel + Render).
+# Publishes the client bundle to GitHub Pages on every push to main — the
+# staging ancestor of THE LINK (single-player; ECHOES OF EDEN is SP-only).
 
 on:
   push:

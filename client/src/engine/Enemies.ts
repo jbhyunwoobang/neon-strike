@@ -19,7 +19,6 @@ import * as THREE from 'three';
 import type { Collider } from './Arena';
 import type { Effects } from './Effects';
 import type { Audio } from './Audio';
-import type { EnemyState } from '../shared/protocol';
 
 export interface EnemyType {
   hp: number; speed: number; damage: number; range: number; ranged: boolean;
@@ -354,18 +353,15 @@ export class EnemyManager {
   private ctx: Ctx;
   private ray = new THREE.Raycaster();
   private local = new Map<number, Enemy>();
-  private net = new Map<number, { group: THREE.Group; meshes: THREE.Object3D[]; tx: number; tz: number; ty: number }>();
   private seq = 1;
-  networked = false;
 
   constructor(ctx: Ctx) { this.ctx = ctx; }
 
-  get count() { return this.networked ? this.net.size : this.local.size; }
+  get count() { return this.local.size; }
 
   meshes(): THREE.Object3D[] {
     const out: THREE.Object3D[] = [];
-    if (this.networked) this.net.forEach((n) => out.push(...n.meshes));
-    else this.local.forEach((e) => out.push(...e.meshes()));
+    this.local.forEach((e) => out.push(...e.meshes()));
     return out;
   }
 
@@ -381,8 +377,6 @@ export class EnemyManager {
   clear() {
     this.local.forEach((e) => this.ctx.scene.remove(e.group));
     this.local.clear();
-    this.net.forEach((n) => this.ctx.scene.remove(n.group));
-    this.net.clear();
   }
 
   /** Apply a client hit locally (single-player). Returns kill info. */
@@ -491,45 +485,6 @@ export class EnemyManager {
       // Hurt flash decay.
       if (e.hurtT > 0) { e.hurtT -= dt; e.mat.emissiveIntensity = 1.7; }
       else { e.mat.emissiveIntensity = 0.5; }
-    }
-  }
-
-  /* -------------------------------- NET --------------------------------- */
-
-  /** Reconcile against a server snapshot (co-op). */
-  syncNet(list: EnemyState[]) {
-    this.networked = true;
-    const seen = new Set<number>();
-    for (const s of list) {
-      seen.add(s.id);
-      let n = this.net.get(s.id);
-      if (!n) {
-        const def = ENEMY_TYPES[s.type] ?? ENEMY_TYPES.grunt;
-        const f = buildFigure(def, s.type);
-        f.group.position.set(s.x, s.y, s.z);
-        const meshes: THREE.Object3D[] = [];
-        f.group.traverse((o) => {
-          const m = o as THREE.Mesh;
-          if (m.isMesh) { m.userData.enemyId = s.id; m.userData.headY = f.headY; meshes.push(m); }
-        });
-        this.ctx.scene.add(f.group);
-        n = { group: f.group, meshes, tx: s.x, tz: s.z, ty: s.y };
-        this.net.set(s.id, n);
-      }
-      n.tx = s.x; n.tz = s.z; n.ty = s.y;
-      n.group.rotation.y = Math.atan2(this.ctx.getPlayerPos().x - s.x, this.ctx.getPlayerPos().z - s.z);
-    }
-    // Despawn removed.
-    for (const [id, n] of this.net) {
-      if (!seen.has(id)) { this.ctx.scene.remove(n.group); this.net.delete(id); }
-    }
-  }
-
-  updateNet(dt: number) {
-    for (const n of this.net.values()) {
-      n.group.position.x += (n.tx - n.group.position.x) * Math.min(1, dt * 12);
-      n.group.position.z += (n.tz - n.group.position.z) * Math.min(1, dt * 12);
-      n.group.position.y += (n.ty - n.group.position.y) * Math.min(1, dt * 12);
     }
   }
 }

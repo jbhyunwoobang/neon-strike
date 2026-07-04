@@ -7,13 +7,11 @@
  * bridges). Drives the camera each frame with eye-height, head-bob and lean
  * roll; exposes look delta + velocity so the weapon view-model can sway.
  *
- * Networking reads `flags`, position and yaw/pitch for the transform packet.
  */
 
 import * as THREE from 'three';
 import type { Input } from './Input';
 import type { Collider } from './Arena';
-import { MoveFlags } from '../shared/protocol';
 import { store } from '../store';
 
 const STAND_HEIGHT = 1.75;
@@ -41,7 +39,6 @@ export class Player {
   private lean = 0;         // smoothed lean roll
   private slideT = 0;
   private lastStep = 0;
-  flags = MoveFlags.None;
   landImpulse = 0;
 
   // Movement tunables.
@@ -174,13 +171,6 @@ export class Player {
     // Landing impulse (for camera dip in Game).
     if (this.landImpulse > 0) this.landImpulse = Math.max(0, this.landImpulse - dt * 4);
 
-    // Pack network flags.
-    let f = MoveFlags.None;
-    if (wantCrouch) f |= MoveFlags.Crouch;
-    if (wantSprint) f |= MoveFlags.Sprint;
-    if (!this.onGround) f |= MoveFlags.Airborne;
-    if (this.slideT > 0) f |= MoveFlags.Sliding;
-    this.flags = f;
   }
 
   /** Move along a horizontal axis, resolving collisions with step-up + vault. */

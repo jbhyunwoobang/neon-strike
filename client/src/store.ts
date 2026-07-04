@@ -2,7 +2,7 @@
  * store.ts — Global UI/application state (Zustand).
  *
  * Two concerns live here:
- *   1. Screen/navigation + lobby/multiplayer state that React renders.
+ *   1. Screen/navigation state that React renders.
  *   2. A HUD "mailbox" the imperative game engine writes into each frame; React
  *      subscribes and re-renders only the changed HUD widgets.
  *
@@ -12,13 +12,11 @@
  */
 
 import { create } from 'zustand';
-import type { GameMode, PlayerInfo, RoomSnapshot, ChatLine } from './shared/protocol';
 
 export type Screen =
   | 'intro'
   | 'menu' | 'settings' | 'credits'
   | 'loadout'
-  | 'mp-menu' | 'lobby'
   | 'playing' | 'gameover';
 
 export type GrenadeType = 'frag' | 'smoke' | 'flash' | 'emp';
@@ -74,19 +72,6 @@ export interface Hud {
   mapName: string;         // final map for this match (drives the pre-match roulette)
 }
 
-export interface Multiplayer {
-  connected: boolean;
-  roomCode: string | null;
-  selfId: string | null;
-  isHost: boolean;
-  snapshot: RoomSnapshot | null;
-  players: PlayerInfo[];
-  chat: ChatLine[];
-  killFeed: { text: string; t: number }[];
-  ping: number;
-  error: string | null;
-}
-
 const DEFAULT_KEYBINDS: Keybinds = {
   forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD',
   jump: 'Space', crouch: 'ControlLeft', sprint: 'ShiftLeft',
@@ -123,7 +108,6 @@ const emptyHud: Hud = {
 
 interface State {
   screen: Screen;
-  mode: GameMode;
   username: string;
   bestScore: number;
   loadout: Loadout;
@@ -131,11 +115,9 @@ interface State {
 
   settings: Settings;
   hud: Hud;
-  mp: Multiplayer;
 
   // navigation
   setScreen: (s: Screen) => void;
-  setMode: (m: GameMode) => void;
   setUsername: (n: string) => void;
 
   // settings
@@ -147,36 +129,22 @@ interface State {
   setHud: (patch: Partial<Hud>) => void;
   resetHud: () => void;
   recordScore: (score: number) => void;
-
-  // multiplayer
-  setMp: (patch: Partial<Multiplayer>) => void;
-  pushChat: (line: ChatLine) => void;
-  pushKill: (text: string) => void;
-  resetMp: () => void;
 }
 
 const BEST_KEY = 'neon-strike:best:v1';
 const NAME_KEY = 'neon-strike:name:v1';
 
-const emptyMp: Multiplayer = {
-  connected: false, roomCode: null, selfId: null, isHost: false,
-  snapshot: null, players: [], chat: [], killFeed: [], ping: 0, error: null,
-};
-
 export const useStore = create<State>((set, get) => ({
   screen: 'intro',
-  mode: 'coop',
   username: localStorage.getItem(NAME_KEY) ?? `Op-${Math.floor(Math.random() * 900 + 100)}`,
   bestScore: Number(localStorage.getItem(BEST_KEY) ?? 0),
 
   settings: loadSettings(),
   hud: { ...emptyHud },
-  mp: { ...emptyMp },
   loadout: { weapon: 2, grenade: 'frag', map: 'random' }, // default: AR + frag + random map
   setLoadout: (patch) => set((s) => ({ loadout: { ...s.loadout, ...patch } })),
 
   setScreen: (screen) => set({ screen }),
-  setMode: (mode) => set({ mode }),
   setUsername: (username) => { localStorage.setItem(NAME_KEY, username); set({ username }); },
 
   updateSettings: (patch) => {
@@ -204,10 +172,6 @@ export const useStore = create<State>((set, get) => ({
     }
   },
 
-  setMp: (patch) => set((s) => ({ mp: { ...s.mp, ...patch } })),
-  pushChat: (line) => set((s) => ({ mp: { ...s.mp, chat: [...s.mp.chat.slice(-40), line] } })),
-  pushKill: (text) => set((s) => ({ mp: { ...s.mp, killFeed: [...s.mp.killFeed.slice(-6), { text, t: Date.now() }] } })),
-  resetMp: () => set({ mp: { ...emptyMp } }),
 }));
 
 /** Non-reactive accessors for the engine (avoids React hook rules). */

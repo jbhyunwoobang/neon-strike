@@ -3,22 +3,20 @@ import { useStore } from '../store';
 
 interface Props {
   onSolo: () => void;
-  onMultiplayer: () => void;
   onSettings: () => void;
   onCredits: () => void;
 }
 
-export function MainMenu({ onSolo, onMultiplayer, onSettings, onCredits }: Props) {
+export function MainMenu({ onSolo, onSettings, onCredits }: Props) {
   const best = useStore((s) => s.bestScore);
 
   return (
     <div className="overlay">
-      <div className="brand">NEON STRIKE</div>
+      <div className="brand">ECHOES OF EDEN</div>
       <div className="tagline">Brutalist Megacity · 2095</div>
 
       <div className="menu-col">
         <button className="btn" onClick={onSolo}>Single Player</button>
-        <button className="btn ghost" onClick={onMultiplayer}>Multiplayer</button>
         <button className="btn ghost" onClick={onSettings}>Settings</button>
         <button className="btn ghost" onClick={onCredits}>Credits</button>
       </div>

@@ -1,0 +1,31 @@
+name: CI
+
+# Sprint 001 A4 — typecheck + build on every push/PR; the timing-table test
+# joins this job in Sprint 001 Phase B (task B2).
+
+on:
+  push:
+    branches: [main, 'sprint/**', 's001/**']
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install
+        working-directory: client
+        run: npm ci --no-workspaces --no-audit --no-fund
+      - name: Typecheck
+        working-directory: client
+        run: npm run typecheck
+      - name: Build (with size report)
+        working-directory: client
+        run: |
+          npm run build
+          echo "== bundle sizes =="
+          du -sh dist
+          ls -la dist/assets

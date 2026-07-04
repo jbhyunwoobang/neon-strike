@@ -5,11 +5,9 @@
  * runs one `update(dt)` per frame. It is the single place that:
  *   - drives the player controller, weapon and enemies,
  *   - resolves shots into damage / score / HUD,
- *   - manages health/armor, pickups, death & respawn,
- *   - in multiplayer: sends the local transform, renders remote players/enemies
- *     from server snapshots, and reports hits authoritatively-lite.
+ *   - manages health/armor, pickups, death & game over.
  *
- * React only ever calls: `new Game(canvas)`, `start(mode, opts)`, `pause()`,
+ * React only ever calls: `new Game(canvas)`, `start(opts)`, `pause()`,
  * `resume()`, `dispose()`. Everything else flows through the Zustand store.
  */
 
@@ -23,18 +21,14 @@ import { Effects } from './Effects';
 import { WeaponController, WEAPONS, type ShotResult } from './Weapons';
 import { EnemyManager } from './Enemies';
 import { WaveManager } from './WaveManager';
-import { Net } from './Net';
 import { Physics } from './Physics';
 import { RapierWorld } from './RapierWorld';
 import { store } from '../store';
 import type { GrenadeType } from '../store';
-import type { GameMode, PlayerTransform, PlayerInfo } from '../shared/protocol';
 
 export interface StartOptions {
-  mode: GameMode;
   seed?: number;
   spawn?: { x: number; y: number; z: number };
-  net?: Net;                    // provided for multiplayer
   spawnPoints?: THREE.Vector3[];
   startWeapon?: number;         // roster index chosen in the loadout
   grenade?: string;             // grenade type chosen in the loadout
@@ -58,8 +52,6 @@ export class Game {
   private enemies!: EnemyManager;
   private waves!: WaveManager;
 
-  private net: Net | null = null;
-  private mode: GameMode = 'coop';
   private running = false;
   paused = false;
 
@@ -69,7 +61,6 @@ export class Game {
   private maxHealth = 100;
   private score = 0;
   private kills = 0;
-  private respawnTimer = 0;
   private dead = false;
 
   // Pickups.
@@ -82,9 +73,6 @@ export class Game {
   private grenadeAiming = false;
   private arcLine: THREE.Line | null = null;
 
-  // Multiplayer.
-  private remotePlayers = new Map<string, { group: THREE.Group; body: THREE.Mesh; head: THREE.Mesh; tx: number; ty: number; tz: number; ry: number }>();
-  private netSendTimer = 0;
   private unsubVolume: (() => void) | null = null;
 
   private lastLook = { dx: 0, dy: 0 };
@@ -101,16 +89,12 @@ export class Game {
   /* ------------------------------- lifecycle ----------------------------- */
 
   start(opts: StartOptions, onGameOver?: (won: boolean) => void) {
-    this.mode = opts.mode;
-    this.net = opts.net ?? null;
     this.onGameOver = onGameOver;
     this.audio.resume();
     store.get().resetHud();
 
-    // Build the world. Solo rolls a fresh seed each match; MP uses the server's
-    // shared seed so every client generates the identical map. The theme is
-    // derived from the seed → same map type for the whole room, and a random
-    // one of the five themes every new match.
+    // Build the world: a fresh seed each match; the theme is derived from the
+    // seed (or the loadout's explicit pick), so repeat maps still vary.
     const seed = (opts.seed ?? Math.floor(Math.random() * 0xffffffff)) >>> 0;
     let theme = MAP_THEMES[seed % MAP_THEMES.length];
     // Loadout map pick overrides the seed roll ('random' keeps it).
@@ -151,7 +135,7 @@ export class Game {
     // Real rigid-body world (async WASM). Populated once it initialises; the
     // game runs regardless (graceful fallback to the custom Physics layer).
     this.rapier = new RapierWorld(this.engine.scene);
-    if (this.mode === 'coop' && !this.net) {
+    {
       let s = seed;
       const rng = () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
       this.rapier.init().then(() => {
@@ -183,9 +167,7 @@ export class Game {
       effects: this.effects,
       audio: this.audio,
       worldTargets: this.arena.raycastTargets,
-      getEnemyMeshes: () => this.mode === 'coop' || this.mode === 'ffa' || this.mode === 'tdm'
-        ? [...this.enemies.meshes(), ...this.pvpTargets()]
-        : this.enemies.meshes(),
+      getEnemyMeshes: () => this.enemies.meshes(),
       applyRecoil: (p, y) => { this.player.pitch = Math.min(Math.PI / 2 - 0.05, this.player.pitch + p); this.player.yaw += y; },
       onShot: (r) => this.onShot(r),
       onFire: (o, d, wi) => this.onFire(o, d, wi),
@@ -210,15 +192,10 @@ export class Game {
 
     // Reset vitals.
     this.health = this.maxHealth = 100;
-    this.armor = this.mode === 'ffa' || this.mode === 'tdm' ? 25 : 0;
-    this.score = 0; this.kills = 0; this.dead = false; this.respawnTimer = 0;
+    this.armor = 0;
+    this.score = 0; this.kills = 0; this.dead = false;
 
-    // Mode-specific setup.
-    if (this.mode === 'coop') this.enemies.networked = !!this.net;
-    if (!this.net && this.mode === 'coop') this.waves.start();      // solo waves
-    if (this.mode === 'coop' && !this.net === false) { /* net waves via server */ }
-
-    if (this.net) this.bindNet();
+    this.waves.start();
 
     this.input.enabled = true;
     this.input.requestLock();
@@ -274,80 +251,7 @@ export class Game {
     this.enemies?.clear();
     this.physics?.clear();
     this.rapier?.clear();
-    this.remotePlayers.forEach((r) => this.engine.scene.remove(r.group));
-    this.remotePlayers.clear();
     this.engine.dispose();
-  }
-
-  /* ------------------------------- net wiring ---------------------------- */
-
-  private selfId(): string | null { return this.net?.id ?? null; }
-
-  private bindNet() {
-    const net = this.net!;
-    net.on('players:transforms', (list) => {
-      for (const t of list) {
-        if (t.id === this.selfId()) continue;
-        this.updateRemotePlayer(t);
-      }
-    });
-    net.on('player:fired', (p) => {
-      if (p.id === this.selfId()) return;
-      const from = new THREE.Vector3(p.ox, p.oy, p.oz);
-      const to = from.clone().add(new THREE.Vector3(p.dx, p.dy, p.dz).multiplyScalar(60));
-      this.effects.tracer(from, to, 0xff8a4a);
-    });
-    net.on('enemies:state', (list) => { if (this.mode === 'coop') this.enemies.syncNet(list); });
-    net.on('wave:changed', (p) => store.get().setHud({ wave: p.wave, enemiesLeft: p.enemies }));
-    net.on('player:damaged', (p) => { this.damagePlayer(p.hp, p.by === 'enemy' ? null : p.by); });
-    net.on('player:respawned', (p) => {
-      if (p.id === this.selfId()) { this.player.reset(p.x, 0, p.z); this.dead = false; this.health = 100; this.armor = 25; this.syncHud(); }
-    });
-    net.on('player:killed', (e) => {
-      const txt = e.killer ? `${e.killer} ▸ ${e.victim}` : `${e.victim} was eliminated`;
-      store.get().pushKill(txt + (e.headshot ? '  ⊙' : ''));
-    });
-    net.on('game:over', ({ snapshot }) => { store.get().setMp({ snapshot, players: snapshot.players }); this.endMatch(false); });
-  }
-
-  private pvpTargets(): THREE.Object3D[] {
-    if (this.mode !== 'ffa' && this.mode !== 'tdm') return [];
-    const out: THREE.Object3D[] = [];
-    this.remotePlayers.forEach((r) => out.push(r.body, r.head));
-    return out;
-  }
-
-  private ensureRemote(id: string) {
-    let r = this.remotePlayers.get(id);
-    if (!r) {
-      const info = store.get().mp.players.find((p) => p.id === id);
-      const color = info?.color ?? 0x38ff9c;
-      const group = new THREE.Group();
-      const body = new THREE.Mesh(
-        new THREE.CapsuleGeometry ? new THREE.CapsuleGeometry(0.35, 1.0, 4, 8) : new THREE.CylinderGeometry(0.35, 0.35, 1.7, 8),
-        new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.3, roughness: 0.5, metalness: 0.3 }),
-      );
-      body.position.y = 1.0; body.castShadow = true;
-      const head = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 12), new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: color, emissiveIntensity: 0.3 }));
-      head.position.y = 1.85;
-      body.userData.playerId = id; head.userData.playerId = id; head.userData.headY = 1.7;
-      body.userData.headY = 1.7;
-      group.add(body, head);
-      this.engine.scene.add(group);
-      r = { group, body, head, tx: 0, ty: 0, tz: 0, ry: 0 };
-      this.remotePlayers.set(id, r);
-    }
-    return r;
-  }
-
-  private updateRemotePlayer(t: PlayerTransform & { id: string }) {
-    const r = this.ensureRemote(t.id);
-    r.tx = t.x; r.ty = t.y; r.tz = t.z; r.ry = t.ry;
-  }
-
-  removeRemote(id: string) {
-    const r = this.remotePlayers.get(id);
-    if (r) { this.engine.scene.remove(r.group); this.remotePlayers.delete(id); }
   }
 
   /* ------------------------------- combat -------------------------------- */
@@ -356,15 +260,7 @@ export class Game {
     if (r.enemyId !== undefined) {
       store.get().setHud({ hitmarker: performance.now(), headshot: r.headshot });
       this.audio.hitmarker(r.headshot);
-      if (this.mode === 'coop' && this.net) {
-        this.net.hitEnemy(r.enemyId, r.dmg, r.headshot);          // server adjudicates
-      } else {
-        this.enemies.damageLocal(r.enemyId, r.dmg, r.headshot);   // single-player
-      }
-    } else if (r.playerId !== undefined && this.net) {
-      store.get().setHud({ hitmarker: performance.now(), headshot: r.headshot });
-      this.audio.hitmarker(r.headshot);
-      this.net.hitPlayer(r.playerId, r.dmg, r.headshot, this.weapon.def.id);
+      this.enemies.damageLocal(r.enemyId, r.dmg, r.headshot);
     } else if (r.material === 'glass') {
       // Shot glass shatters into falling shards.
       this.physics.shatter(r.point, r.dir.clone().negate(), 7);
@@ -422,9 +318,6 @@ export class Game {
       this.physics.ejectCasing(port, right, up);
       this.rapier.shoot(origin, dir, 7);   // bullets shove pushable crates
     }
-    if (this.net) {
-      this.net.sendFire({ ox: origin.x, oy: origin.y, oz: origin.z, dx: dir.x, dy: dir.y, dz: dir.z, weapon: weaponIndex });
-    }
   }
 
   private onEnemyKilled(scoreGain: number, _type: string, headshot: boolean) {
@@ -452,20 +345,14 @@ export class Game {
     this.dead = true;
     this.health = 0;
     store.get().setHud({ alive: false, health: 0 });
-    if (this.net) {
-      this.net.reportDeath(by);
-      // Respawn in PvP / co-op after a delay.
-      this.respawnTimer = this.mode === 'coop' ? 6 : 3;
-    } else {
-      // Single-player: game over.
-      this.endMatch(false);
-    }
+    void by;
+    this.endMatch(false);
   }
 
   /* ------------------------------- pickups ------------------------------- */
 
   private spawnPickup() {
-    if (this.pickups.length >= 3 || this.mode === 'ffa' || this.mode === 'tdm') return;
+    if (this.pickups.length >= 3) return;
     const kind: 'health' | 'ammo' = Math.random() < 0.5 ? 'health' : 'ammo';
     const color = kind === 'health' ? 0x8fa36a : 0xd9552b;
     const mesh = new THREE.Mesh(new THREE.OctahedronGeometry(0.4), new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.9, metalness: 0.3, roughness: 0.3 }));
@@ -497,17 +384,6 @@ export class Game {
 
   private update = (dt: number, elapsed: number) => {
     if (!this.running || this.paused) return;
-
-    // Death / respawn handling (MP).
-    if (this.dead && this.net) {
-      this.respawnTimer -= dt;
-      store.get().setHud({ toast: `RESPAWN IN ${Math.ceil(this.respawnTimer)}` });
-      if (this.respawnTimer <= 0) { this.net.requestRespawn(); this.respawnTimer = 999; }
-      this.engine.setFov(store.get().settings.fov);
-      this.arena.update(dt, elapsed, this.engine.camera.position);
-      this.effects.update(dt);
-      return;
-    }
 
     // Vehicle enter / exit (interact key) when near.
     const vpos = this.rapier.vehiclePos();
@@ -580,9 +456,8 @@ export class Game {
     }
 
     // Enemies.
-    if (this.enemies.networked) this.enemies.updateNet(dt);
-    else this.enemies.updateLocal(dt, elapsed);
-    if (!this.net && this.mode === 'coop') this.waves.update(dt);
+    this.enemies.updateLocal(dt, elapsed);
+    this.waves.update(dt);
 
     // Pickups + world.
     this.updatePickups(dt, elapsed);
@@ -590,29 +465,6 @@ export class Game {
     this.effects.update(dt);
     this.physics.update(dt);
     this.rapier.step(dt);
-
-    // Interpolate remote players.
-    this.remotePlayers.forEach((r) => {
-      r.group.position.x += (r.tx - r.group.position.x) * Math.min(1, dt * 12);
-      r.group.position.y += (r.tz !== undefined ? (r.ty - r.group.position.y) : 0) * Math.min(1, dt * 12);
-      r.group.position.z += (r.tz - r.group.position.z) * Math.min(1, dt * 12);
-      r.group.rotation.y = r.ry;
-    });
-
-    // Network: send our transform at a fixed rate.
-    if (this.net) {
-      this.netSendTimer -= dt;
-      if (this.netSendTimer <= 0) {
-        this.netSendTimer = 1 / 20;
-        const t: PlayerTransform = {
-          x: this.player.pos.x, y: this.player.pos.y, z: this.player.pos.z,
-          ry: this.player.yaw, rx: this.player.pitch,
-          vx: this.player.vel.x, vy: this.player.vel.y, vz: this.player.vel.z,
-          state: this.player.flags, weapon: this.weapon.index, t: Date.now(),
-        };
-        this.net.sendTransform(t);
-      }
-    }
 
     // HUD refresh (cheap fields every frame).
     store.get().setHud({

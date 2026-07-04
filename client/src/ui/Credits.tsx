@@ -12,13 +12,12 @@ export function Credits({ onBack }: { onBack: () => void }) {
         <p>
           <b>Engine:</b> Three.js (WebGL) · custom render, movement, weapon,
           AI and effects systems.<br />
-          <b>Netcode:</b> Node.js + Socket.IO authoritative rooms.<br />
-          <b>UI:</b> React + TypeScript + Zustand.
+                    <b>UI:</b> React + TypeScript + Zustand.
         </p>
         <p>
           Audio is fully procedural (Web Audio API) — no external assets, so the
           whole game streams in seconds. The brutalist megacity is generated
-          procedurally from a seed shared across all players in a room.
+          procedurally from a per-match seed.
         </p>
         <p style={{ fontSize: 12.5 }}>
           Built with Claude Code. MIT licensed — fork it, learn from it, ship

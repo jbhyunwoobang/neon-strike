@@ -23,7 +23,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           three: ['three'],
-          vendor: ['react', 'react-dom', 'zustand', 'socket.io-client'],
+          vendor: ['react', 'react-dom', 'zustand'],
         },
       },
     },
