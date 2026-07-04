@@ -19,6 +19,7 @@ import { Weapon } from '../../core/combat/weapon';
 import { C9 } from '../../data/weapons/c9';
 import { PlayerVitals, route, DamageClass, HitZone } from '../../core/combat/damage';
 import { CovenantDirector, ACRE_PROVING, type CovenantConfig } from '../../core/covenant/director';
+import { SaveSystem, LocalStorage } from '../../core/save/save';
 import { buildAcre, type AcreWorld } from './acre';
 import { WardenRig } from './WardenRig';
 
@@ -58,6 +59,9 @@ export class ProvingGame {
   private raycaster = new THREE.Raycaster();
   private fallStartY = 0;
   private wasGrounded = true;
+  private saves = new SaveSystem(new LocalStorage(), 'sprint-002');
+  private ledger = { cordons: 0, banked: false };
+  private playtime = 0;
 
   constructor(canvas: HTMLCanvasElement) {
     const s = store.get().settings;
@@ -65,10 +69,24 @@ export class ProvingGame {
     this.input = new Input(canvas);
     const fast = new URLSearchParams(location.search).get('fast') === '1';
     this.director = new CovenantDirector(fast ? FAST : ACRE_PROVING);
+    // The world ledger persists as a versioned chunk (Book X §10 live in-app).
+    this.saves.register('world-ledger', {
+      version: 1,
+      capture: () => ({ ...this.ledger }),
+      restore: (b) => { this.ledger = { ...(b as typeof this.ledger) }; },
+    });
   }
 
   start(onEnd?: () => void) {
     this.onEnd = onEnd;
+    void this.saves.load('proving').then((snap) => {
+      if (snap) {
+        this.saves.apply(snap);
+        if (this.ledger.cordons > 0 || this.ledger.banked) {
+          this.toast(this.ledger.banked ? 'THE LEDGER REMEMBERS: THE ACRE HAS BANKED BEFORE.' : 'THE LEDGER REMEMBERS A CORDON HERE.');
+        }
+      }
+    });
     store.get().resetHud();
     this.world = buildAcre(this.engine.scene);
     this.pos.copy(this.world.spawnPoint);
@@ -218,7 +236,8 @@ export class ProvingGame {
     const cover = new THREE.Vector3(Math.cos(slotA) * 11, 0, Math.sin(slotA) * 11);
     const rig = new WardenRig(lane.spawn, cover, unit === 'first-class', {
       onLedger: () => {
-        try { localStorage.setItem('eoe:ledger:acre-proving', JSON.stringify({ cordon: true, t: Date.now() })); } catch { /* private mode */ }
+        this.ledger.cordons += 1;
+        void this.saves.save('proving', 'ACRE_PROVING', this.playtime);
         this.toast('FILED. THE WORLD REMEMBERS.');
       },
       onShoot: (from) => this.wardenShoot(from),
@@ -282,6 +301,7 @@ export class ProvingGame {
 
   private update = (dt: number, _elapsed: number) => {
     if (!this.running || this.paused) return;
+    this.playtime += dt;
 
     // End handling: won → exit; failed/dead → grey → restart.
     if (this.endT >= 0) {
@@ -382,7 +402,8 @@ export class ProvingGame {
       }
       if (sample.phase === 'won') {
         this.toast("THE CHARGE BANKS. THE ACRE STANDS. — 'STILL HERE.'");
-        try { localStorage.setItem('eoe:ledger:acre-banked', JSON.stringify({ banked: true, t: Date.now() })); } catch { /* ok */ }
+        this.ledger.banked = true;
+        void this.saves.save('proving', 'ACRE_PROVING', this.playtime);
         this.endT = 6.0;
       }
       if (sample.phase === 'failed') this.failCovenant('THE COVENANT FAILS.');
