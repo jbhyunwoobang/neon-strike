@@ -1,8 +1,8 @@
 {
-  "name": "neon-strike",
+  "name": "echoes-of-eden",
   "version": "1.0.0",
   "private": true,
-  "description": "NEON STRIKE — a browser-native, AAA-inspired futuristic FPS (Three.js + React + Socket.IO)",
+  "description": "ECHOES OF EDEN — a single-player cinematic story FPS for the browser (Three.js + React)",
   "license": "MIT",
   "workspaces": ["client", "server"],
   "scripts": {

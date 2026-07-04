@@ -1,9 +1,9 @@
 # ECHOES OF EDEN
-## BOOK V.5 — EXPERIENCE QUICK REFERENCE
+## BOOK IV.5 QUICK REFERENCE — EXPERIENCE
 ### Edition One · The Ten-Page Desk Handbook · 2026
 
-*Distilled from BOOK V — Experience Bible (authority; the brief's "Book IV.5") under BOOK
-II.5 (Canon Lock). Zero new rules. When this sheet and Book V disagree, Book V wins.
+*Distilled from BOOK IV.5 — Experience Bible (authority) under BOOK II.5 (Canon Lock).
+Zero new rules. When this sheet and Book IV.5 disagree, Book IV.5 wins.
 Every section scannable in under one minute. The question it answers, always:
 **"What should the player feel right now?"***
 
@@ -223,4 +223,4 @@ like it's the last of it, because in this world it is. And when someone asks if 
 moment is big enough, ask the only question this project recognizes: *does it keep
 the losses felt?* If yes, ship it. If no — bring the spade.
 
-*— End of BOOK V.5, Edition One. Zero new canon. Authority: Book V → Canon Lock.*
+*— End of BOOK IV.5 QUICK REFERENCE, Edition One (renumbered from "V.5" per the 2026-07-03 shelf ruling). Zero new canon. Authority: Book IV.5 → Canon Lock.*

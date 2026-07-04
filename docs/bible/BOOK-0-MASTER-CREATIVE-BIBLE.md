@@ -566,3 +566,10 @@ If no — bring the spade.
 
 *— End of BOOK 0, Edition One. Zero new canon. Load me first; then the Lock; then
 your craft. Amendments require a logged entry in PROJECT_STATE.md.*
+
+*ERRATUM (2026-07-03, shelf ruling): this handbook's "Books I–V.5" refers to the
+pre-renumbering shelf. Current shelf: 0 · I · II · II.5 · III · IV · IV Quick Ref ·
+IV.5 (Experience) · IV.5 Quick Ref · **V (Gameplay & Systems Bible — the gameplay
+disciplines' domain book, containing this project's platform plan, systems law, and
+the Director's Checklist).** Platform intent amended: instant-play web link first,
+Steam later (Book V §0.5). Ledger: PROJECT_STATE.md.*

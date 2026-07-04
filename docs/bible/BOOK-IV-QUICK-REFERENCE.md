@@ -1,5 +1,5 @@
 # ECHOES OF EDEN
-## BOOK IV.5 — ART DIRECTION QUICK REFERENCE
+## BOOK IV QUICK REFERENCE — ART DIRECTION
 ### Edition One · The Desk Handbook · 2026
 
 *Distilled from BOOK IV (authority) under BOOK II.5 (Canon Lock). Contains zero new rules.
@@ -316,4 +316,4 @@ gravel-spray destruction · no second hero light · no lens flares, zooms, or sh
 24. **Does it need a logo to be recognized?** → redesign.
 25. **Is anything here only because it looks cool?** → redesign.
 
-*— End of BOOK IV.5, Edition One. Zero new canon. Authority: Book IV → Canon Lock.*
+*— End of BOOK IV QUICK REFERENCE, Edition One (renumbered from "IV.5" per the 2026-07-03 shelf ruling — see PROJECT_STATE.md). Zero new canon. Authority: Book IV → Canon Lock.*

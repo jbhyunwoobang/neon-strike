@@ -1,18 +1,23 @@
 # CURRENT PROJECT STATE — ECHOES OF EDEN
 *Live production snapshot. Always describes NOW. Updated at the end of every session.
 Division of labor: this file = production state; `PROJECT_STATE.md` = canon-amendment
-ledger + session-protocol source. Last updated: 2026-07-03 (checkpoint).*
+ledger + session-protocol source. Last updated: 2026-07-04 (Sprint 001 planned; lane ruling logged — web stack executes, UE5 mirrored).*
 
 ## Phase & milestone
 - **Production phase:** Pre-production — creative foundation COMPLETE; checkpoint done;
   **awaiting user approval to begin implementation phase (Sprint 0).**
-- **Current milestone:** Project Checkpoint ✅ · **Current sprint:** none active.
+- **Current milestone:** SPRINT 001 PLANNED (`docs/sprints/SPRINT-001-PLAN.md`) · **Current sprint:** 001 "Foundation" — ready to execute; first gate = repo privacy decision (USER).
+- **Committed slice deliverable:** ~30-minute playable game via web link (user-directed 2026-07-04).
 - **Next recommended milestone:** SPRINT 0 — production setup (see TODO CRITICAL).
 
 ## Completed
-- **Books (9):** 0 (Master) · I (Universe) · II (Narrative) · II.5 (Canon Lock, 9
-  rulings applied) · III (Characters) · IV (Visual) · IV.5 (Art Quick Ref) · V
-  (Experience) · V.5 (Experience Quick Ref). All in `docs/bible/`, all pushed.
+- **Books (16 — THE SHELF IS FINISHED):** 0 · I · II · II.5 · III · IV · IV-QR ·
+  IV.5 · IV.5-QR · V (Gameplay) · VI (Level Design) · VII (Enemy/Boss) · VIII
+  (Cinematic/GN) · VIII.5 (Shot Bible) · IX (Production Master Plan) · **X
+  (Technical Design Document — 2026-07-04: dual-lane architecture, subsystem
+  roster, sprint task decomposition to the link)**. All in `docs/bible/`.
+  Books V–X NOT yet committed/pushed (repo privacy decision pending — Sprint 0
+  deliverable #1).
 - **Sprints:** none (implementation not started under the new direction).
 - **Gameplay systems (LEGACY PROTOTYPE — non-canon content, reusable tech):**
   Three.js FPS engine (movement, hitscan combat, 10 weapons incl. working scopes,
@@ -42,9 +47,10 @@ ledger + session-protocol source. Last updated: 2026-07-03 (checkpoint).*
   launch.json entries, package names, README.
 - Rapier WASM bundle ~2 MB (fine for prototype; revisit per engine decision).
 - Physics.ts dead code path (old smoke-points), duplicated grenade/lob logic.
-- Book numbering drift: Book I/II reference future "Book V (weapons)"/"Book VIII
-  (cinematics)" written before V became the Experience Bible — needs erratum at next
-  Lock edition (logged in checkpoint report).
+- Book numbering drift: RESOLVED 2026-07-03 — shelf renumbered (Experience → IV.5,
+  Gameplay & Systems = V); Book I/II's forward references to "Book V (weapons)" now
+  correctly point at the real Book V (§4 weapon system). Residual: fold the ruling
+  into Canon Lock Edition Two when it is next revised.
 - Legacy docs (README.md, docs/DEPLOYMENT/NETWORKING/ARCHITECTURE/INSTALL) describe
   the arcade MP game — outdated post-pivot, scheduled for Sprint 1 rewrite.
 
@@ -58,14 +64,17 @@ ledger + session-protocol source. Last updated: 2026-07-03 (checkpoint).*
 - **Gameplay systems:** story scaffold/chapter flow, saves, dialogue/interaction,
   companion pacing (Dez), stealth verbs (Ch.4), evacuation-carry verbs (Ch.6),
   Converter story-weapon modes, regrowth-defense as canonical mode, GN sequence
-  player, journal UI, accessibility per V.5.
+  player, journal UI, accessibility per IV.5-QR and Book V §14.
 - **Cinematics:** all 8 planned + 7 GN sequences (Book VIII scope).
 - **Audio:** entire canonical soundscape (motif ledger, per-district ambience,
   the recitation recording).
 
 ## Estimated overall completion
-- Creative foundation: **~85%** (Books 0–V.5 done at Edition One depth; Gameplay/
-  Level/Audio/Cinematic books remain).
+- Creative foundation: **100% — the Book I–IX roadmap is complete.** (Audio and
+  UI law live inside Books IV/V/VIII rather than as separate volumes; standalone
+  bibles for them are optional future work, not blockers.)
+- Production: **~5%** — next milestone is Sprint 0, then Phases 1–4 to the
+  committed 30-minute web link (Book IX §3).
 - Production (the shippable game): **~5%** — a proven combat/rendering prototype and
   a complete design bible, but no story content implemented, engine undecided,
   asset pipeline not started. Honest read: pre-production complete, production not

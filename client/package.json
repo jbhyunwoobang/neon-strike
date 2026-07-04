@@ -1,8 +1,8 @@
 {
-  "name": "neon-strike-client",
+  "name": "echoes-of-eden-client",
   "version": "1.0.0",
   "private": true,
-  "description": "NEON STRIKE — browser FPS client (React + Three.js)",
+  "description": "ECHOES OF EDEN — browser client (React + Three.js)",
   "license": "MIT",
   "type": "module",
   "scripts": {

@@ -20,7 +20,9 @@ kept alive?"
 1. `docs/bible/BOOK-0-MASTER-CREATIVE-BIBLE.md` — identity (load FIRST)
 2. `docs/bible/BOOK-II.5-CANON-LOCK.md` — facts, rulings, glossary, canon rules
 3. The domain book for the task (I universe · II narrative · III characters ·
-   IV + IV.5 visual · V + V.5 experience)
+   IV + IV-QR visual · IV.5 + IV.5-QR experience · V gameplay & systems · VI level
+   design & world building · VII enemies, factions & bosses · VIII cinematics,
+   storyboards & graphic novel · VIII.5 the shot library & frame law · IX production master plan · X technical design document)
 4. `CURRENT_PROJECT_STATE.md` — where we are right now
 Conflict resolution: **Lock rulings > Book I > Book II > later books > summaries.**
 The reference board (`/Users/hyunwoobang/Desktop/Game Project - reference /` — note the
@@ -47,7 +49,7 @@ trailing space) is supreme for *visuals only*; its draft copy text is superseded
 - **Introducing new systems:** justify against a Book or TODO.md entry; smallest
   honest version first; wire into existing managers (Game.ts orchestrates; React
   only via the Zustand store); log in CHANGELOG.md.
-- **Consistency:** the visual/experience checklists (IV.5 §final, V.5 p.9, Book 0
+- **Consistency:** the visual/experience/gameplay checklists (IV-QR §final, IV.5-QR p.9, Book V §17–18, Book 0
   §14) apply to *implemented* scenes, not just concept art. The green-ration and
   palette laws bind the runtime too.
 - **Legacy quarantine:** multiplayer code (server/, client Net.ts, MP UI) is

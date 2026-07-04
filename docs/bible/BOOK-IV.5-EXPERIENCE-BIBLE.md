@@ -1,8 +1,9 @@
 # ECHOES OF EDEN
-## BOOK V — THE EXPERIENCE BIBLE
+## BOOK IV.5 — THE EXPERIENCE BIBLE
 ### Edition One · The Emotional Blueprint · 2026
 
-*Filed as Book V (the IV.5 slot is held by the Art Quick Reference). Governed by BOOK II.5
+*Filed as Book IV.5 per the 2026-07-03 shelf ruling (formerly filed as Book V; the Art
+Quick Reference is now "Book IV Quick Reference"). Governed by BOOK II.5
 (Canon Lock — load first), then Books I–IV. This document designs no systems, no
 characters, no lore, no visuals — it choreographs what the player FEELS, minute by minute,
 and every department keys its work to it. Where earlier books locked a beat (pacing map,
@@ -377,6 +378,6 @@ priced to conviction, §5) — pass. Wonder > spectacle (3 sanctioned wonder-bea
 orchestra used once) — pass. Curiosity > exposition (label-withholding engine, §4;
 zero exposition characters exist — BIII) — pass. Canon audit: every cited beat traced
 to Lock/BII–BIV; no new lore, characters, systems, or visuals introduced; the one
-naming decision (filing as Book V) logged — pass.
+naming decision (refiled as Book IV.5, 2026-07-03) logged — pass.
 
-*— End of BOOK V, Edition One. Amendments require a logged entry in PROJECT_STATE.md.*
+*— End of BOOK IV.5 (Experience Bible), Edition One. Amendments require a logged entry in PROJECT_STATE.md.*

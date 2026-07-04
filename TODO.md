@@ -6,10 +6,14 @@
 - ⛔ **Repo privacy decision** — P:CRITICAL · Deps: user · E:S · Owner: **user**
   decides, Claude executes. AC: bibles no longer publicly exposed (repo private OR
   docs moved to private repo; Pages implications documented).
-- ⬜ **SPRINT 0 — production setup** — P:CRITICAL · Deps: privacy decision, user
-  approval to resume · E:M · AC: engine decision recorded w/ rationale; repo/product
-  rename plan; folder + naming conventions doc; pipeline tools list; Sprint 1 scope
-  signed.
+- ⬜ **SPRINT 0 / PHASE 0 — production setup** — P:CRITICAL · Deps: privacy
+  decision, user approval · E:M · AC per Book IX §3 Phase 0: privacy executed;
+  Engine Gate prep (decision itself lands at slice-ship, default = web stack);
+  rename plan; conventions doc; Sprint 1 scope signed.
+- ⬜ **PHASES 1–4 → THE LINK** — P:CRITICAL · Deps: Sprint 0 · E:XL · the committed
+  deliverable: "The Sigh & the Seedling" ~30-min playable at a public web link
+  (Prologue + Ch.1 + one Standing Watch page). Full phase plan + acceptance
+  criteria: Book IX §2–3, §13.
 - ⬜ **SPRINT 1 — multiplayer excision + retitle** — P:CRITICAL · Deps: Sprint 0 ·
   E:L · AC: server/ removed; Net.ts/lobby/rooms/MP UI removed; Render service
   decommissioned; menus single-player only; product renamed ECHOES OF EDEN
@@ -17,12 +21,14 @@
   build + live link verified.
 
 ## HIGH
-- ⬜ **Book numbering erratum** (I/II reference "Book V weapons"/"Book VIII
-  cinematics" written pre-drift) — P:H · Deps: none · E:S · AC: Lock Edition Two
-  maps the final book plan; errata footers updated.
-- ⬜ **BOOK VI — Gameplay/Combat Bible** (user brief) — P:H · Deps: Book 0 ·
-  E:L · AC: canonical verbs (regrowth defense, carry/evac, stealth, Converter
-  modes), enemy roster re-fictionalized, progression-as-perception spec.
+- ✅ **Book numbering erratum** — RESOLVED 2026-07-03 by shelf renumbering (user
+  ruling; Experience → IV.5, Gameplay & Systems = V; files renamed, headers errata'd).
+  Residual (E:S): fold ruling into Canon Lock Edition Two at its next revision.
+- ✅ **BOOK V — Gameplay & Systems Bible** (was listed as "Book VI Gameplay/Combat")
+  — DONE 2026-07-03 → `docs/bible/BOOK-V-GAMEPLAY-SYSTEMS-BIBLE.md`. Covers all AC:
+  canonical verbs (covenant waves, carry/evac, procedure-stealth, green-unit modes),
+  encounter/boss contracts over the Lock §17 roster, progression-as-perception,
+  weapons, economy, Standing Watch, saves/accessibility/balance, QC batteries.
 - ⬜ **BOOK VII — Level Design Bible** (user brief) — P:H · Deps: VI · E:L.
 - ⬜ **BOOK VIII — Cinematic & Audio Bible** (user brief) — P:H · Deps: II–V ·
   E:L · AC: full shot lists, GN page scripts, motif score spec; GPT-Image key-art
