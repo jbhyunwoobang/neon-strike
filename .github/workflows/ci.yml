@@ -18,7 +18,7 @@ jobs:
           node-version: '20'
       - name: Install
         working-directory: client
-        run: npm ci --no-workspaces --no-audit --no-fund
+        run: npm install --no-workspaces --no-audit --no-fund
       - name: Typecheck
         working-directory: client
         run: npm run typecheck
