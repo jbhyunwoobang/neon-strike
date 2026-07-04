@@ -1,12 +1,12 @@
 # CURRENT PROJECT STATE — ECHOES OF EDEN
 *Live production snapshot. Always describes NOW. Updated at the end of every session.
 Division of labor: this file = production state; `PROJECT_STATE.md` = canon-amendment
-ledger + session-protocol source. Last updated: 2026-07-04 (Review Board 001 filed: verdict = ship the slice, reframe to Act I; execution 2/10 today, vision 9/10).*
+ledger + session-protocol source. Last updated: 2026-07-04 (Sprint 002 execution begun: systems core landed — locomotion/weapon/damage/AI/covenant, 47 tests green in CI).*
 
 ## Phase & milestone
 - **Production phase:** Pre-production — creative foundation COMPLETE; checkpoint done;
   **awaiting user approval to begin implementation phase (Sprint 0).**
-- **Current milestone:** SPRINT 002 PLANNED (`docs/sprints/SPRINT-002-PLAN.md` — "The Covenant Grey-Box": first complete gameplay loop; 158h nominal = Block Z carry-over (S001 Phases B–E) + weapon/damage/AI/covenant blocks). S001 status: Phase A DONE (gates, MP excision −4,688 lines, CI, link live at https://jbhyunwoobang.github.io/neon-strike/); Phases B–E execute as Block Z inside Sprint 002.
+- **Current milestone:** SPRINT 002 IN EXECUTION — **the systems core is landed and tested** (Z1 tree; Z2 locomotion state machine + THE TIMING-TABLE TEST; W1/W2 weapon framework + Arsenal C-9; W4–W6 damage pipeline + Breath/Binding vitals + plate arcs; A1–A3+A5 five-state Wardenry AI + escalation drill + radio actors + Warden First Class elite; C2 covenant wave director v1 — 47 tests, all green, in CI). All headless RULES-layer per Book X's three-layer law; render-lane integration (graybox arena, viewmodel, HUD binding) is the next execution block. S001 Phase A done; remaining Z-block items (interaction set, save chunks, UI shell, graybox stations) queue next.
 - **Committed slice deliverable:** ~30-minute playable game via web link (user-directed 2026-07-04).
 - **Next recommended milestone:** SPRINT 0 — production setup (see TODO CRITICAL).
 

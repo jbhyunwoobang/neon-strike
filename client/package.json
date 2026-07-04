@@ -2,14 +2,16 @@
   "name": "echoes-of-eden-client",
   "version": "1.0.0",
   "private": true,
-  "description": "ECHOES OF EDEN — browser client (React + Three.js)",
+  "description": "ECHOES OF EDEN \u2014 browser client (React + Three.js)",
   "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.14.0",
@@ -24,6 +26,7 @@
     "@types/three": "^0.161.0",
     "@vitejs/plugin-react": "^4.3.1",
     "typescript": "^5.5.0",
-    "vite": "^5.3.0"
+    "vite": "^5.3.0",
+    "vitest": "^4.1.9"
   }
 }

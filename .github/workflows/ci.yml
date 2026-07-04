@@ -1,7 +1,7 @@
 name: CI
 
-# Sprint 001 A4 — typecheck + build on every push/PR; the timing-table test
-# joins this job in Sprint 001 Phase B (task B2).
+# Sprint 001 A4 + Sprint 002 Z2/B2 — typecheck, the timing-table & systems
+# test suite (feel canon: a failure here is an S2), and the build, every push/PR.
 
 on:
   push:
@@ -22,6 +22,9 @@ jobs:
       - name: Typecheck
         working-directory: client
         run: npm run typecheck
+      - name: Test (timing tables + systems core)
+        working-directory: client
+        run: npm test
       - name: Build (with size report)
         working-directory: client
         run: |
