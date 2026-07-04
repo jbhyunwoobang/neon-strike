@@ -189,6 +189,17 @@ export class Engine {
   onUpdate(fn: UpdateFn) { this.updates.push(fn); }
   offUpdate(fn: UpdateFn) { this.updates = this.updates.filter((u) => u !== fn); }
 
+  /**
+   * Manual grade anchors (the per-space EV law [BIV §6/§15] — no auto drift).
+   * Content sets these per zone; legacy defaults remain untouched otherwise.
+   */
+  setGrade(g: { exposure?: number; bloom?: number; ca?: number; grain?: number }) {
+    if (g.exposure !== undefined) this.renderer.toneMappingExposure = g.exposure;
+    if (g.bloom !== undefined) this.bloomPass.strength = g.bloom;
+    if (g.ca !== undefined && this.lensPass) this.lensPass.uniforms.uCA.value = g.ca;
+    if (g.grain !== undefined && this.lensPass) this.lensPass.uniforms.uGrain.value = g.grain;
+  }
+
   setFov(fov: number) {
     this.camera.fov = fov;
     this.camera.updateProjectionMatrix();

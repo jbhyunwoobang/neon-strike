@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useStore, store } from './store';
 import { Game, type StartOptions } from './engine/Game';
 import { ProvingGame } from './content/proving/ProvingGame';
+import { FidelityScene } from './content/fidelity/FidelityScene';
 import { Intro } from './ui/Intro';
 import { MainMenu } from './ui/MainMenu';
 import { Loadout } from './ui/Loadout';
@@ -28,13 +29,26 @@ export function App() {
   const pendingRef = useRef<StartOptions | null>(null);
   const pendingProvingRef = useRef(false);
   const [canvasKey, setCanvasKey] = useState(0);
+  const fidelityRef = useRef<FidelityScene | null>(null);
+  const [fidelity] = useState(() => new URLSearchParams(location.search).get('fidelity') === '1');
   const [paused, setPaused] = useState(false);
   // In-match settings render as an overlay (switching screens would unmount
   // the canvas and kill the running match).
   const [showSettings, setShowSettings] = useState(false);
 
+  /* F1 gate harness: ?fidelity=1 boots straight into the test scene. */
+  useEffect(() => {
+    if (!fidelity || !canvasRef.current || fidelityRef.current) return;
+    const fs = new FidelityScene(canvasRef.current);
+    fidelityRef.current = fs;
+    fs.start();
+    return () => { fidelityRef.current?.dispose(); fidelityRef.current = null; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fidelity]);
+
   /* Start a match once the (re)mounted canvas is available. */
   useEffect(() => {
+    if (fidelity) return;
     if (!canvasRef.current) return;
     if (pendingProvingRef.current) {
       pendingProvingRef.current = false;
@@ -118,6 +132,10 @@ export function App() {
   }, []);
 
   const inGame = screen === 'playing' || screen === 'gameover';
+
+  if (fidelity) {
+    return <canvas ref={canvasRef} className="game" />;
+  }
 
   return (
     <>
