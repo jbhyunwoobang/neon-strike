@@ -45,6 +45,8 @@ export interface Settings {
   keybinds: Keybinds;
 }
 
+export interface ReadingDoc { title: string; body: string; kicker?: string; }
+
 export interface Hud {
   health: number;
   armor: number;
@@ -115,6 +117,7 @@ interface State {
 
   settings: Settings;
   hud: Hud;
+  reading: ReadingDoc | null;
 
   // navigation
   setScreen: (s: Screen) => void;
@@ -129,6 +132,7 @@ interface State {
   setHud: (patch: Partial<Hud>) => void;
   resetHud: () => void;
   recordScore: (score: number) => void;
+  setReading: (doc: ReadingDoc | null) => void;
 }
 
 const BEST_KEY = 'neon-strike:best:v1';
@@ -141,6 +145,7 @@ export const useStore = create<State>((set, get) => ({
 
   settings: loadSettings(),
   hud: { ...emptyHud },
+  reading: null,
   loadout: { weapon: 2, grenade: 'frag', map: 'random' }, // default: AR + frag + random map
   setLoadout: (patch) => set((s) => ({ loadout: { ...s.loadout, ...patch } })),
 
@@ -164,6 +169,7 @@ export const useStore = create<State>((set, get) => ({
   },
 
   setHud: (patch) => set((s) => ({ hud: { ...s.hud, ...patch } })),
+  setReading: (reading) => set({ reading }),
   resetHud: () => set({ hud: { ...emptyHud } }),
   recordScore: (score) => {
     if (score > get().bestScore) {

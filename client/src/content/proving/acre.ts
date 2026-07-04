@@ -10,6 +10,7 @@
  */
 
 import * as THREE from 'three';
+import { pourBox, trunk as stillwoodTrunk } from '../kits/kits';
 
 export interface AcreWorld {
   colliders: THREE.Box3[];
@@ -19,6 +20,8 @@ export interface AcreWorld {
   greenUnit: THREE.Mesh;
   spawnPoint: THREE.Vector3;
   root: THREE.Group;
+  /** The cordon incident slip (S003 P1's first document). */
+  slip: THREE.Mesh;
 }
 
 // Canon anchors [BIV §5].
@@ -39,7 +42,15 @@ export function buildAcre(scene: THREE.Scene): AcreWorld {
   const colliders: THREE.Box3[] = [];
 
   const box = (w: number, h: number, d: number, x: number, y: number, z: number, color = CONCRETE, collide = true) => {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color));
+    // F1 recipe: every concrete mass wears the board-form biography.
+    const isPour = color === CONCRETE || color === CONCRETE_DARK;
+    const m = isPour ? pourBox(w, h, d) : new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color));
+    if (isPour && color === CONCRETE_DARK) {
+      // Darker masses: same material family, shadow-side tint via vertex-less trick —
+      // a cloned material instance with darkened color multiplier.
+      m.material = (m.material as THREE.MeshStandardMaterial).clone();
+      (m.material as THREE.MeshStandardMaterial).color.setHex(0xb9b7b0);
+    }
     m.position.set(x, y, z);
     m.castShadow = m.receiveShadow = true;
     root.add(m);
@@ -71,13 +82,18 @@ export function buildAcre(scene: THREE.Scene): AcreWorld {
   box(8, 30, 8, -34, 15, -6);
   box(8, 30, 8, 34, 15, -6);
 
-  // ---- colonnade-stub rows along the three lanes (metronomic, 10 m spacing).
+  // ---- stillwood colonnades along the three lanes (the cathedral rhyme —
+  //      trunks as columns, metronomic 10 m spacing; K2 kit).
+  let trunkSeed = 100;
   const colonnade = (dirX: number, dirZ: number, count: number) => {
     for (let i = 2; i <= count + 1; i++) {
       const d = i * 10;
       const px = dirX * d, pz = dirZ * d;
-      box(1.8, 14, 1.8, px + dirZ * 5, 7, pz + dirX * 5, CONCRETE);
-      box(1.8, 14, 1.8, px - dirZ * 5, 7, pz - dirX * 5, CONCRETE);
+      for (const side of [1, -1]) {
+        const piece = stillwoodTrunk(trunkSeed++, px + side * dirZ * 5, pz + side * dirX * 5, 13 + (i % 3), 0.85);
+        root.add(piece.mesh);
+        if (piece.collider) colliders.push(piece.collider);
+      }
     }
   };
   colonnade(0, -1, 4);                       // N lane (−z)
@@ -179,7 +195,16 @@ export function buildAcre(scene: THREE.Scene): AcreWorld {
   tape.position.set(9, 1.0, -14);
   tape.rotation.y = 0.7;
   root.add(tape);
+  // The incident slip, zip-tied where the work stopped (paperwork is this
+  // world's blood-spatter — the first readable document).
+  const slip = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.21, 0.297),
+    new THREE.MeshStandardMaterial({ color: 0xd8d2c4, roughness: 0.9, side: THREE.DoubleSide }),
+  );
+  slip.position.set(8.2, 1.02, -13.4);
+  slip.rotation.set(-0.25, 0.7, 0.05);
+  root.add(slip);
 
   scene.add(root);
-  return { colliders, lanes, center, sapling, greenUnit, spawnPoint, root };
+  return { colliders, lanes, center, sapling, greenUnit, spawnPoint, root, slip };
 }

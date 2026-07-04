@@ -20,6 +20,7 @@ import { C9 } from '../../data/weapons/c9';
 import { PlayerVitals, route, DamageClass, HitZone } from '../../core/combat/damage';
 import { CovenantDirector, ACRE_PROVING, type CovenantConfig } from '../../core/covenant/director';
 import { SaveSystem, LocalStorage } from '../../core/save/save';
+import { InteractionSystem } from '../../core/interact/interact';
 import { buildAcre, type AcreWorld } from './acre';
 import { WardenRig } from './WardenRig';
 
@@ -44,11 +45,10 @@ export class ProvingGame {
   private director: CovenantDirector;
   private wardens: WardenRig[] = [];
   private pos = new THREE.Vector3();
-  private yaw = Math.PI; // face the arena from the S ridge
+  private yaw = 0; // face the arena (-z) from the S ridge — the read vantage
   private pitch = 0;
   private running = false;
   private started = false;
-  private plantHold = 0;
   private endT = -1;
   private greyFade = 0;
   private lastNoisePos: THREE.Vector3 | null = null;
@@ -62,6 +62,7 @@ export class ProvingGame {
   private saves = new SaveSystem(new LocalStorage(), 'sprint-002');
   private ledger = { cordons: 0, banked: false };
   private playtime = 0;
+  private interact = new InteractionSystem();
 
   constructor(canvas: HTMLCanvasElement) {
     const s = store.get().settings;
@@ -88,7 +89,33 @@ export class ProvingGame {
       }
     });
     store.get().resetHud();
+    // The Ch.1 grade anchor (the F1 finding, adopted): the greyest hour.
+    this.engine.setGrade({ exposure: 0.88, bloom: 0.08, ca: 0.00025, grain: 0.1 });
     this.world = buildAcre(this.engine.scene);
+    // The interaction verbs (Book V §2.11 — duration is the moral grammar).
+    this.interact.register(
+      { id: 'green-unit', prompt: 'START THE GREEN UNIT', mode: 'hold', holdS: 1.5, once: true },
+      () => {
+        this.started = true;
+        this.director.start();
+        ((this.world.greenUnit.children[0] as THREE.Mesh).material as THREE.MeshStandardMaterial).emissiveIntensity = 0.8;
+        this.toast('THE CHARGE BANKS. HOLD THE ACRE.');
+      },
+    );
+    this.interact.register(
+      { id: 'cordon-slip', prompt: 'READ', mode: 'press' },
+      () => store.get().setReading({
+        kicker: 'EDGE CORP · CONCESSION FIELD FORM 12-C',
+        title: 'Incident Slip — Tract C2-FALLOW-0113',
+        body:
+          'Crew 7 withdrew 0341. Anomalous regrowth at grid heart, origin ' +
+          'unestablished. Site posted, tract flagged for re-survey.\n\n' +
+          'Yield variance logged as accounting error pending review.\n' +
+          'Re-harvest scheduled next rotation. No further action.\n\n' +
+          '— Duty Officer, C2 Watch\n\n' +
+          'reckoned',
+      }),
+    );
     this.pos.copy(this.world.spawnPoint);
     this.weapon.on((e) => { if (e.type === 'fire') this.playerShoot(); });
     this.weapon.draw();
@@ -289,8 +316,10 @@ export class ProvingGame {
     this.weapon.on((e) => { if (e.type === 'fire') this.playerShoot(); });
     this.weapon.draw();
     this.started = false;
+    this.interact.rearm('green-unit');
     this.endT = -1;
     this.greyFade = 0;
+    ((this.world.greenUnit.children[0] as THREE.Mesh).material as THREE.MeshStandardMaterial).emissiveIntensity = 0.0;
     (this.world.sapling.getObjectByName('sapling-crown') as THREE.Mesh).visible = true;
     this.pos.copy(this.world.spawnPoint);
     this.banks25.clear();
@@ -368,23 +397,19 @@ export class ProvingGame {
       const began = this.weapon.trigger(s.canFire);
       if (began && this.weapon.mode === 'semi') this.input.firing = false; // semi: one per click
     }
-    // --- interact: start the green unit (hold-verb, 1.5 s — the plant).
-    const nearUnit = this.pos.distanceTo(this.world.greenUnit.position) < 2.4;
-    if (!this.started && nearUnit) {
-      store.get().setHud({ interactHint: 'HOLD [F] — START THE GREEN UNIT' });
-      if (this.input.wantInteract) {
-        this.plantHold += dt;
-        if (this.plantHold >= 1.5) {
-          this.started = true;
-          this.director.start();
-          ((this.world.greenUnit.children[0] as THREE.Mesh).material as THREE.MeshStandardMaterial).emissiveIntensity = 0.8;
-          this.toast('THE CHARGE BANKS. HOLD THE ACRE.');
-          store.get().setHud({ interactHint: '' });
-        }
-      } else this.plantHold = 0;
-    } else if (!this.started) {
-      store.get().setHud({ interactHint: '' });
-    }
+    // --- interact (the universal framework, S003 P1).
+    let focusId: string | null = null;
+    if (!this.started && this.pos.distanceTo(this.world.greenUnit.position) < 2.4) focusId = 'green-unit';
+    else if (this.pos.distanceTo(this.world.slip.position) < 2.2 && !store.get().reading) focusId = 'cordon-slip';
+    this.interact.setFocus(focusId);
+    const iv = this.interact.tick(dt, this.input.wantInteract && !store.get().reading);
+    store.get().setHud({
+      interactHint: iv.prompt
+        ? iv.mode === 'hold'
+          ? `HOLD [F] — ${iv.prompt}${iv.progress > 0 ? ` · ${Math.round(iv.progress * 100)}%` : ''}`
+          : `[F] ${iv.prompt}`
+        : '',
+    });
 
     // --- covenant
     const crown = this.world.sapling.getObjectByName('sapling-crown') as THREE.Mesh;

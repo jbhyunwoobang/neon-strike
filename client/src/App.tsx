@@ -20,6 +20,7 @@ import { Hud } from './ui/HUD';
 import { PauseMenu } from './ui/Pause';
 import { GameOver } from './ui/GameOver';
 import { Credits } from './ui/Credits';
+import { DocumentReader } from './ui/DocumentReader';
 
 export function App() {
   const screen = useStore((s) => s.screen);
@@ -163,6 +164,7 @@ export function App() {
       {screen === 'playing' && (
         <>
           <Hud />
+          <DocumentReader />
           {paused && !showSettings && <PauseMenu onResume={resumeGame} onSettings={() => setShowSettings(true)} onQuit={quitToMenu} />}
           {paused && showSettings && <SettingsScreen onBack={() => setShowSettings(false)} />}
         </>
